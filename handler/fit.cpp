@@ -82,7 +82,7 @@ void HandleTree::makeHist(){ //YES
         hist = NULL;
     }
    
-    hist = new TH1D("hist", "Invariant mass for WIN entries (450;550)", 50, 450, 550);
+    hist = new TH1D(Form("hist%.1f",energy), Form("Inv mass %.1f", energy), 50, 450, 550);
     //chain->Draw("m>>hist", conditions.c_str()); //простой метод получения гистограммы из дерева, но плохой (не хочу рисовать)
     
     chain->GetEntries(); //перед GetTree нужно вставить любую операцию работы с чейном, иначе всё рушится (баг рута, скорее всего)

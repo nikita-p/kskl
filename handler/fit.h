@@ -25,6 +25,7 @@ class HandleTree{
     TChain* chain = NULL;
     TH1D* hist = NULL; //распределение по инвариантной массе
     TF1* fitF = NULL; //фит по инвариантной массе 
+    double energy; //!!!поправить, т.к. не будет работать при мёрдже
     string conditions = "win&m>450&m<550"; //условия на hist, fitF и всё остальное тоже
     
     double variance(int, int);
@@ -36,6 +37,8 @@ public:
     }
     
     HandleTree(string path, string treeName){   //path - путь до файла с деревом, treeName - имя дерева в рут файле
+        std::cout << path.substr( path.find_last_of('/') + 2, path.length() - 5) << std::endl;
+        energy = atof( path.substr( path.find_last_of('/') + 2, path.length() - 5).c_str() );
         chain = new TChain(treeName.c_str());
         chain->Add(path.c_str());
     }
@@ -51,6 +54,8 @@ public:
         return this->hist;  }
     TF1* getFit(){
         return this->fitF;   }
+    double getEnergy(){
+        return this->energy;    }
     
     
     ~HandleTree(){
