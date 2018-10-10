@@ -59,4 +59,14 @@ vector<TH1D*> Copier::showHists(){
     return hs;
 }
 
+vector<TF1*> Copier::showFits(){
+    
+    vector<TF1*> vt;
+    for(int i=0; i<int(vec.size()); i++){
+        vec[i]->makeFit();
+        vt.insert(vt.end(), vec[i]->getFit());
+    }
+    return vt;
+}
+
 

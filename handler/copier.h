@@ -6,9 +6,10 @@
 #include <TGraphAsymmErrors.h>
 #include <TSystem.h>
 
-#include <vector>
-#include <iterator>
-#include <string>
+#include <vector> //for vector
+#include <iterator> //for vector
+#include <string> //for string
+#include <algorithm>
 
 using namespace std;
 
@@ -16,6 +17,11 @@ class Copier{
   
   string folder;
   vector<HandleTree*> vec;
+  
+  
+  static bool comp (HandleTree* a, HandleTree* b) {
+    return (a->getEnergy()) < (b->getEnergy());
+  }
     
   public:
     
@@ -39,10 +45,11 @@ class Copier{
                 std::cout << filename << std::endl;
                 //загружать файл и в функцию
                 HandleTree* f = new HandleTree(string(filename),"InvMass");
-                vec.insert(vec.end(), f);       
+                vec.insert(vec.end(), f);
             }
             entry = gSystem->GetDirEntry(dir);
         }
+        sort(vec.begin(), vec.end(), comp);
     }
 
     vector<TH1D*> showHists();

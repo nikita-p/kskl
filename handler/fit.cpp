@@ -113,7 +113,7 @@ void HandleTree::makeFit(){ //YES
     double xmin = 450;
     double xmax = 550;
 
-    fitF = new TF1("fitFunction", Gauss, xmin, xmax, 5);
+    fitF = new TF1(Form("fitF%.1f",energy), Gauss, xmin, xmax, 5);
     fitF->SetParLimits(0, 0.0, 1.E7);
     fitF->SetParLimits(1, xmin, xmax);
     fitF->SetParLimits(2, 0.1, 40.);
