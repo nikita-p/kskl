@@ -27,6 +27,8 @@ class HandleTree{
     TF1* fitF = NULL; //фит по инвариантной массе 
     double energy; //!!!поправить, т.к. не будет работать при мёрдже
     string conditions = "win&m>450&m<550"; //условия на hist, fitF и всё остальное тоже
+    double EL[3]; //сумма произведений энергий на светимости
+    double L[3]; //полная светимость
     
     double variance(int, int);
 
@@ -56,6 +58,8 @@ public:
         return this->fitF;   }
     double getEnergy(){
         return this->energy;    }
+    int getEntriesWithConditions(){
+        return chain->GetEntries(conditions.c_str());   }
     
     
     ~HandleTree(){

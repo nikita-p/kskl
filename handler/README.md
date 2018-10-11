@@ -20,14 +20,4 @@
         double getEnergy();
             получить энергию для дерева
             
-2. Класс Copier работает с кучей деревьев, используя методы HandleTree
-        private static bool comp (HandleTree* a, HandleTree* b)
-            компаратор для сортировки внутри кучи деревьев
-        vector<TH1D*> showHists();
-            получить набор гистограмм по инв.массе
-        vector<TF1*> showFits();
-            получить набор фитов гистограмм по инв.массе
-        vector<TGraphAsymmErrors*> showTriggers();
-            получить кучу триггерных эффективностей
-        void writeInformation(string);
-            записать всю информацию в файл (чтоб из него строить сечения)
+2. Класс Dataset работает с кучей деревьев, используя методы HandleTree
