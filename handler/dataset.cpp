@@ -2,8 +2,14 @@
 
 using namespace std;
 
-bool Dataset::comp(HandleTree* a, HandleTree* b){
+bool Dataset::compt(HandleTree* a, HandleTree* b){
     return (a->getEnergy())<(b->getEnergy());
+}
+
+bool Dataset::comps(string a, string b){
+    double A = atof( a.substr( a.find_last_of('/') + 2, a.length() - 5).c_str() );
+    double B = atof( b.substr( b.find_last_of('/') + 2, b.length() - 5).c_str() );
+    return A<B;
 }
 
 double Dataset::LinearApprox(double E, double x1, double y1, double x2, double y2){
@@ -36,12 +42,11 @@ void Dataset::GetDataVector(){
         filename = entry;
         if(filename.EndsWith(end.c_str())){
             filename = gSystem->ConcatFileName(dataFolder.c_str(), entry);
-            HandleTree* f = new HandleTree(string(filename), treeName.c_str());
-            data.insert(data.end(), f);
+            data.insert(data.end(), string(filename));
         }
         entry = gSystem->GetDirEntry(dir);
     }
-    sort(data.begin(), data.end(), comp);
+    sort(data.begin(), data.end(), comps);
     return;
 }
 
@@ -67,7 +72,7 @@ void Dataset::GetModelVector(){
         }
         entry = gSystem->GetDirEntry(dir);
     }
-    sort(model.begin(), model.end(), comp);
+    sort(model.begin(), model.end(), compt);
     return;
 }
 
@@ -144,13 +149,63 @@ double* Dataset::RegistrationEff(double E){
     return res;
 }
 
+void Dataset::ClearFits(){
+    fits.clear();
+    return;
+}
+
+void Dataset::ClearHists(){
+    hists.clear();
+    return;
+}
+
+void Dataset::ClearMdata(){
+    mdata.clear();
+    return;
+}
+
 void Dataset::AutoFit(){
+
+    ClearFits();
+    ClearHists();
+    ClearMdata();
     
     int n = data.size();
+    HandleTree* t;
     for(int i=0; i<n; i++){
-        data[i]->makeFit();
-        fits.insert(fits.end(), data[i]->getFit());
-        hists.insert(hists.end(), data[i]->getHist());
+        t = new HandleTree(data[i], treeName);
+        t->makeFit();
+        mdata.insert(mdata.end(), t);
+        fits.insert(fits.end(), t->getFit());
+        hists.insert(hists.end(), t->getHist());
+    }
+    return;
+}
+
+void Dataset::PowerFit(int startPosition = 0){
+
+    ClearFits();
+    ClearHists();
+    ClearMdata();
+    
+    int n = data.size();
+    HandleTree* t;
+    bool do_merge = false;
+    for(int i=startPosition; i<n; i++){
+        if(!do_merge)
+            t = new HandleTree(data[i], treeName);
+        else
+            t->Merge(data[i]);
+            
+        t->makeFit();
+        cout << "Merge it?" << endl;
+        cin >> do_merge;
+        if((!do_merge)||(i==n-1)){
+            mdata.insert(mdata.end(), t);
+            fits.insert(fits.end(), t->getFit());
+            hists.insert(hists.end(), t->getHist());
+        }
+        gPad->WaitPrimitive();
     }
     return;
 }
@@ -163,4 +218,12 @@ vector<TH1D*> Dataset::GetHists(){
     return hists;
 }
 
-
+Dataset::~Dataset(){
+    mdata.clear();
+    fits.clear();
+    hists.clear();
+    data.clear();
+    model.clear();
+    lum.clear();
+    radcor.clear();
+}
