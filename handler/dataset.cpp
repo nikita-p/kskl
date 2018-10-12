@@ -77,12 +77,13 @@ void Dataset::GetModelVector(){
 }
 
 void Dataset::GetLumVector(){
-    ofstream flum(lumFile.c_str());
+    ifstream flum(lumFile.c_str());
     
     double e;
     while(!flum.eof()){
         double* l = new double [3];
-        flum << e << l[0] << l[1];
+        flum >> e >> l[0] >> l[1];
+        //cout << e << '\t' << l[0] << '\t' << l[1] << endl;
         if(flum.eof())
             break;
         l[2] = l[1];
@@ -94,12 +95,12 @@ void Dataset::GetLumVector(){
 }
 
 void Dataset::GetRadcorVector(){
-    ofstream frad(radcorFile.c_str());
+    ifstream frad(radcorFile.c_str());
     
     double e;
     double rad;
     while(!frad.eof()){
-        frad << e << rad;
+        frad >> e >> rad;
         if(frad.eof())
             break;
         pair<double, double> p(e, rad);
@@ -118,10 +119,11 @@ Dataset::Dataset(string model, string data, string lum, string radcor){
     GetDataVector();
     GetModelVector();
     GetLumVector();
-    GetRadcorVector();
+    //GetRadcorVector();
 }
 
 double* Dataset::RegistrationEff(double E){
+    gROOT->SetBatch(kTRUE);
     int n = model.size();
     double index[2] = {0, 1};
     double* res = new double [3];
@@ -146,6 +148,7 @@ double* Dataset::RegistrationEff(double E){
     y1 = model[index[0]]->getRegistrationEfficiency();
     y2 = model[index[1]]->getRegistrationEfficiency();
     res = LinearApprox(3, E, x1, y1, x2, y2);
+    gROOT->SetBatch(kFALSE);
     return res;
 }
 

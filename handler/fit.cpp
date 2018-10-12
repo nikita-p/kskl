@@ -53,14 +53,15 @@ double** HandleTree::triggerEfficiency(){//YES
 }
 
 double* HandleTree::getRegistrationEfficiency(){ //YES
-    double* regEff = new double [3]; // [0] - efficiency, [1] - +dEff, [2] - -dEff;
+    double* regEff = new double [3]; // [0] - efficiency, [1] - -dEff, [2] - +dEff;
     
     if( fitF==NULL )
         makeFit();
     
-    int N0 = chain->GetEntries();
+    int N0 = 20000; //!!перенести в аргументы метода
     regEff[0] = double(fitF->GetParameter(0))/N0;
     regEff[1] = double(fitF->GetParError(0))/N0;
+    regEff[2] = regEff[1];
     
     
     return regEff;
