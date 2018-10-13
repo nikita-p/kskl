@@ -67,8 +67,10 @@ double* HandleTree::getRegistrationEfficiency(){ //YES
     return regEff;
 }
 
-void HandleTree::Merge(string inPath){ //YES
+void HandleTree::Merge(string inPath, double lum){ //YES
     chain->Add(inPath.c_str());
+    energies.insert(energies.end(), atof(inPath.substr( inPath.find_last_of('/') + 2, inPath.length() - 5).c_str()) );
+    lums.insert(lums.end(), lum>0 ? lum : 0);
     delete fitF; // удалить старые значения полей, т.к. информация становится устаревшей
     delete hist;
     fitF = NULL;
@@ -83,7 +85,7 @@ void HandleTree::makeHist(){ //YES
         hist = NULL;
     }
    
-    hist = new TH1D(Form("hist%.1f",energy), Form("Inv mass %.1f", energy), 50, 450, 550);
+    hist = new TH1D(Form("hist%.1f",getEnergy()), Form("Inv mass %.1f", getEnergy()), 50, 450, 550);
     //chain->Draw("m>>hist", conditions.c_str()); //простой метод получения гистограммы из дерева, но плохой (не хочу рисовать)
     
     chain->GetEntries(); //перед GetTree нужно вставить любую операцию работы с чейном, иначе всё рушится (баг рута, скорее всего)
@@ -114,7 +116,7 @@ void HandleTree::makeFit(){ //YES
     double xmin = 450;
     double xmax = 550;
 
-    fitF = new TF1(Form("fitF%.1f",energy), Gauss, xmin, xmax, 5);
+    fitF = new TF1(Form("fitF%.1f",getEnergy()), Gauss, xmin, xmax, 5);
     fitF->SetParLimits(0, 0.0, 1.E7);
     fitF->SetParLimits(1, xmin, xmax);
     fitF->SetParLimits(2, 0.1, 40.);
@@ -125,5 +127,27 @@ void HandleTree::makeFit(){ //YES
     hist->Fit(fitF, "QLL");
     
     return;
+}
+
+double HandleTree::getEnergy(){
+    int n = energies.size();
+    double EL = 0;
+    double L = 0;
+    for(int i=0; i<n; i++){
+        EL += energies[i]*lums[i];
+        L += lums[i];
+    }
+    if( fabs(EL)>0.001 ){
+        return EL/L;
+    }
+    return -energies[n/2]; //отрицательная энергия указывает на то, что не все светимости определены корректно
+}
+
+double HandleTree::getLum(){
+    int n = lums.size();
+    double L = 0;
+    for(int i=0; i<n; i++)
+        L += lums[i];
+    return L;
 }
 

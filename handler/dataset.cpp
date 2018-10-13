@@ -25,6 +25,10 @@ double* Dataset::LinearApprox(int n, double E, double x1, double* y1, double x2,
     
 }
 
+double Dataset::GetEnergyFromString(string a){
+    return atof( a.substr( a.find_last_of('/') + 2, a.length() - 5).c_str() );
+}
+
 void Dataset::GetDataVector(){
     void* dir = gSystem->OpenDirectory( dataFolder.c_str() );
     
@@ -67,7 +71,7 @@ void Dataset::GetModelVector(){
         filename = entry;
         if(filename.EndsWith(end.c_str())){
             filename = gSystem->ConcatFileName(modelFolder.c_str(), entry);
-            HandleTree* f = new HandleTree(string(filename), treeName.c_str());
+            HandleTree* f = new HandleTree(string(filename), treeName.c_str(), 1); //для моделирования можно любую светимость (главное, одинаковую)
             model.insert(model.end(), f);
         }
         entry = gSystem->GetDirEntry(dir);
@@ -119,7 +123,7 @@ Dataset::Dataset(string model, string data, string lum, string radcor){
     GetDataVector();
     GetModelVector();
     GetLumVector();
-    //GetRadcorVector();
+    GetRadcorVector();
 }
 
 double* Dataset::RegistrationEff(double E){
@@ -176,7 +180,7 @@ void Dataset::AutoFit(){
     int n = data.size();
     HandleTree* t;
     for(int i=0; i<n; i++){
-        t = new HandleTree(data[i], treeName);
+        t = new HandleTree(data[i], treeName, GetEnergyFromString(data[i]));
         t->makeFit();
         mdata.insert(mdata.end(), t);
         fits.insert(fits.end(), t->getFit());
@@ -196,9 +200,9 @@ void Dataset::PowerFit(int startPosition = 0){
     bool do_merge = false;
     for(int i=startPosition; i<n; i++){
         if(!do_merge)
-            t = new HandleTree(data[i], treeName);
+            t = new HandleTree(data[i], treeName, GetEnergyFromString(data[i]));
         else
-            t->Merge(data[i]);
+            t->Merge(data[i], GetEnergyFromString(data[i]));
             
         t->makeFit();
         cout << "Merge it?" << endl;
@@ -211,6 +215,15 @@ void Dataset::PowerFit(int startPosition = 0){
         gPad->WaitPrimitive();
     }
     return;
+}
+
+double Dataset::GetLuminosity(double E){
+    int n = lum.size();
+    for(int i=0; i<n; i++){
+        if( fabs(lum[i].first - E) < 0.00001 )
+            return lum[i].second[0];
+    }
+    return 0;
 }
 
 vector<TF1*> Dataset::GetFits(){

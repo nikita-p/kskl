@@ -35,6 +35,7 @@ class Dataset{
     
     double* LinearApprox(int, double, double, double*, double, double*);
     double LinearApprox(double, double, double, double, double);
+    double GetEnergyFromString(string);
     static bool compt(HandleTree*, HandleTree*);
     static bool comps(string, string);
     
@@ -50,6 +51,7 @@ class Dataset{
 public:
     Dataset(string, string, string, string);
     double* RegistrationEff(double);
+    double GetLuminosity(double);
     void AutoFit(); // автоматический пакетный фит гистограмм без мёрджа
     void PowerFit(int); //фитировать гистограммы по очереди (можно даже руками), можно мёрджить
     
