@@ -18,8 +18,8 @@ class Dataset{
 
 
     vector<HandleTree*> mdata;
-    vector<TF1*> fits;
-    vector<TH1D*> hists;
+    vector<TF1> fits;
+    vector<TH1D> hists;
     
     string modelFolder;
     string dataFolder;
@@ -55,8 +55,8 @@ public:
     void AutoFit(); // автоматический пакетный фит гистограмм без мёрджа
     void PowerFit(int); //фитировать гистограммы по очереди (можно даже руками), можно мёрджить
     
-    vector<TF1*> GetFits();
-    vector<TH1D*> GetHists();
+    vector<TF1> GetFits();
+    vector<TH1D> GetHists();
     ~Dataset();
 };
 

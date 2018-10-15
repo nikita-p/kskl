@@ -183,8 +183,8 @@ void Dataset::AutoFit(){
         t = new HandleTree(data[i], treeName, GetEnergyFromString(data[i]));
         t->makeFit();
         mdata.insert(mdata.end(), t);
-        fits.insert(fits.end(), t->getFit());
-        hists.insert(hists.end(), t->getHist());
+        fits.insert(fits.end(), *(t->getFit()));
+        hists.insert(hists.end(), *(t->getHist()));
     }
     return;
 }
@@ -209,8 +209,8 @@ void Dataset::PowerFit(int startPosition = 0){
         cin >> do_merge;
         if((!do_merge)||(i==n-1)){
             mdata.insert(mdata.end(), t);
-            fits.insert(fits.end(), t->getFit());
-            hists.insert(hists.end(), t->getHist());
+            fits.insert(fits.end(), *(t->getFit()));
+            hists.insert(hists.end(), *(t->getHist()));
         }
         gPad->WaitPrimitive();
     }
@@ -226,11 +226,11 @@ double Dataset::GetLuminosity(double E){
     return 0;
 }
 
-vector<TF1*> Dataset::GetFits(){
+vector<TF1> Dataset::GetFits(){
     return fits;
 }
 
-vector<TH1D*> Dataset::GetHists(){
+vector<TH1D> Dataset::GetHists(){
     return hists;
 }
 
