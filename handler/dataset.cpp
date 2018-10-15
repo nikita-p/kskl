@@ -234,6 +234,102 @@ vector<TH1D*> Dataset::GetHists(){
     return hists;
 }
 
+vector<TGraphAsymmErrors*> Dataset::GetTriggers(){
+    int n = mdata.size();
+    vector<double> E(n);
+    vector<vector<double>> T(3);
+    vector<vector<double>> C(3);
+    vector<vector<double>> TC(3);
+    double** res;
+    for(int i=0; i<n; i++){
+        res = mdata[i]->triggerEfficiency();
+        E[i] = mdata[i]->getEnergy();
+        T[0][i] = res[0][0];
+        T[1][i] = res[1][0];
+        T[2][i] = res[2][0];
+        C[0][i] = res[0][1];
+        C[1][i] = res[1][1];
+        C[2][i] = res[2][1];
+        TC[0][i] = res[0][2];
+        TC[1][i] = res[1][2];
+        TC[2][i] = res[2][2];
+    }
+    TGraphAsymmErrors* t = new TGraphAsymmErrors(n, &E[0], &T[0][0], 0, 0, &T[2][0], &T[1][0]);
+    TGraphAsymmErrors* c = new TGraphAsymmErrors(n, &E[0], &C[0][0], 0, 0, &C[2][0], &C[1][0]);
+    TGraphAsymmErrors* tc = new TGraphAsymmErrors(n, &E[0], &TC[0][0], 0, 0, &TC[2][0], &TC[1][0]);
+    vector<TGraphAsymmErrors*> vg = {t, c, tc};
+    return vg;
+}
+
+double Dataset::GetRadcor(double E){
+    int n = radcor.size();
+    for(int i=0; i<n; i++){
+        if( fabs(radcor[i].first - E) < 0.00001 )
+            return radcor[i].second;
+    }
+    cout << Form( "Radcor for %.2E isn't found", E) << endl; 
+    return 1;
+}
+
+TGraphAsymmErrors* Dataset::GetCS(){ //дописать!!
+    int n = mdata.size();
+    vector<double> E;
+    vector<vector<double>> cs(3);
+    double** T;
+    double N;
+    double* R;
+    double r;
+    for(int i=0; i<n; i++){
+        E[i] = mdata[i]->getEnergy();
+        if(GetLuminosity(E[i])==0){
+            cs[0][i] = 0;   cs[1][i] = 0;   cs[2][i] = 0;
+            continue;}
+        T = mdata[i]->triggerEfficiency();
+        N = fits[i]->GetParameter(0);
+        R = RegistrationEff(E[i]);
+        r = GetRadcor(E[i]);
+        cs[0][i] = N/(GetLuminosity(E[i])*T[0][2]*r*R[0]);
+        cs[1][i] = cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[1][2]/T[0][2],2) + pow(R[1]/R[0],2) );
+        cs[2][i] = cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[2][2]/T[0][2],2) + pow(R[2]/R[0],2) );
+    }
+    
+    cross_sections = cs;
+    TGraphAsymmErrors* t = new TGraphAsymmErrors(n, &E[0], &cs[0][0], 0, 0, &cs[2][0], &cs[1][0]);
+    return t;
+}
+
+void Dataset::Save(string path = "Outputs/result.root"){
+    TFile* f = TFile::Open(path.c_str(), "recreate");
+    TTree* t = new TTree("t", "Tree");
+    TF1* fitF = NULL;
+    TH1D* histF = NULL;
+    double cs[3];
+    double* regEff = NULL;
+    double E;
+    t->Branch("fitF", "TF1", fitF, sizeof(TF1));
+    t->Branch("histF", "TH1D", histF, sizeof(TH1D));
+    t->Branch("cs", &cs, "cs[3]/D");
+    t->Branch("regEff", regEff, "regEff[3]/D");
+    t->Branch("E", &E, "E/D");
+    
+    int n = mdata.size();
+    for(int i=0; i<n; i++){
+        fitF = fits[i];
+        histF = hists[i];
+        cs[0] = cross_sections[i][0];
+        cs[1] = cross_sections[i][1];
+        cs[2] = cross_sections[i][2];
+        E = model[i]->getEnergy();
+        regEff = RegistrationEff(E);
+        t->Fill();
+        delete regEff;
+    }
+    t->Write();
+    f->Close();
+    delete t;
+    return;
+}
+
 Dataset::~Dataset(){
     mdata.clear();
     fits.clear();

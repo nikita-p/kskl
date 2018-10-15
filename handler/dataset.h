@@ -16,6 +16,7 @@ using namespace std;
 
 class Dataset{
 
+    vector<vector<double>> cross_sections;
 
     vector<HandleTree*> mdata;
     vector<TF1*> fits;
@@ -52,11 +53,16 @@ public:
     Dataset(string, string, string, string);
     double* RegistrationEff(double);
     double GetLuminosity(double);
+    double GetRadcor(double);
     void AutoFit(); // автоматический пакетный фит гистограмм без мёрджа
     void PowerFit(int); //фитировать гистограммы по очереди (можно даже руками), можно мёрджить
     
     vector<TF1*> GetFits();
     vector<TH1D*> GetHists();
+    vector<TGraphAsymmErrors*> GetTriggers();
+    TGraphAsymmErrors* GetCS();
+    
+    void Save(string);
     ~Dataset();
 };
 
