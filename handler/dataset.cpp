@@ -330,6 +330,33 @@ void Dataset::Save(string path = "Outputs/result.root"){
     return;
 }
 
+void Dataset::Read(string path = "Outputs/result.root"){
+    TFile* f = TFile::Open(path.c_str());
+    fits.clear();
+    hists.clear();
+    cross_sections.clear();
+    
+    TTree* t = (TTree*)(f->Get("t"));
+    
+    TTreeReader theReader(t);
+    TTreeReaderValue<TF1> fitBranch(theReader, "fitF");
+    TTreeReaderValue<TH1D> histBranch(theReader, "histF");
+    TTreeReaderArray<double> csBranch(theReader, "cs");
+
+    while(theReader.Next()){
+       TF1 f = *fitBranch;
+       TH1D h = *histBranch;
+       fits.insert(fits.end(), &f);
+       hists.insert(hists.end(), &h);
+       vector<double> cs0(3);
+       cs0[0] = csBranch[0]; cs0[1] = csBranch[1]; cs0[2] = csBranch[2];
+       cross_sections.insert(cross_sections.end(), cs0);
+    }
+    
+    f->Close();
+    return;
+}
+
 Dataset::~Dataset(){
     mdata.clear();
     fits.clear();
@@ -338,4 +365,5 @@ Dataset::~Dataset(){
     model.clear();
     lum.clear();
     radcor.clear();
+    cross_sections.clear();
 }

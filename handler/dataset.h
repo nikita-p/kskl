@@ -4,6 +4,7 @@
 #include "fit.h"
 #include <vector>
 #include <TSystem.h>
+#include <TTreeReaderArray.h>
 #include <TPad.h>
 #include <fstream>
 #include <utility>
@@ -63,6 +64,7 @@ public:
     TGraphAsymmErrors* GetCS();
     
     void Save(string);
+    void Read(string);
     ~Dataset();
 };
 
