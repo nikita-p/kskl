@@ -16,22 +16,22 @@
 using namespace std;
 
 class Dataset{
-
+protected:
     vector<vector<double>> cross_sections;
 
-    vector<HandleTree*> mdata;
     vector<TF1*> fits;
     vector<TH1D*> hists;
-    
+    vector<pair<double, vector<double>>> lum;
+    vector<pair<double, double>> radcor;
+private:
     string modelFolder;
     string dataFolder;
     string lumFile;
     string radcorFile;
     
+    vector<HandleTree*> mdata;
     vector<string> data;
     vector<HandleTree*> model;
-    vector<pair<double, double*>> lum;
-    vector<pair<double, double>> radcor;
     
     string treeName = "InvMass";
     
@@ -53,7 +53,7 @@ class Dataset{
 public:
     Dataset(string model, string data, string lum, string radcor);
     double* RegistrationEff(double);
-    double GetLuminosity(double);
+    vector<double> GetLuminosity(double E);
     double GetRadcor(double);
     void AutoFit(); // автоматический пакетный фит гистограмм без мёрджа
     void PowerFit(int); //фитировать гистограммы по очереди (можно даже руками), можно мёрджить
@@ -66,7 +66,6 @@ public:
     TGraphAsymmErrors* GetCS();
     
     void Save(string);
-    void Read(string);
     ~Dataset();
 };
 

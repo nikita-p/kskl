@@ -71,7 +71,7 @@ void Dataset::GetModelVector(){
         filename = entry;
         if(filename.EndsWith(end.c_str())){
             filename = gSystem->ConcatFileName(modelFolder.c_str(), entry);
-            HandleTree* f = new HandleTree(string(filename), treeName.c_str(), 1); //для моделирования можно любую светимость (главное, одинаковую)
+            HandleTree* f = new HandleTree(string(filename), treeName.c_str(), {1,0,0}); //для моделирования можно любую светимость (главное, одинаковую)
             model.insert(model.end(), f);
         }
         entry = gSystem->GetDirEntry(dir);
@@ -85,13 +85,13 @@ void Dataset::GetLumVector(){
     
     double e;
     while(!flum.eof()){
-        double* l = new double [3];
+        vector<double> l(3);
         flum >> e >> l[0] >> l[1];
         //cout << e << '\t' << l[0] << '\t' << l[1] << endl;
         if(flum.eof())
             break;
         l[2] = l[1];
-        pair<double, double*> p(e, l);
+        pair<double, vector<double>> p(e, l);
         lum.insert(lum.end(), p);
     }    
     flum.close();
@@ -137,20 +137,20 @@ double* Dataset::RegistrationEff(double E){
     double E0, E1;
     
     for(int i=0; i<n-1; i++){
-        E0 = model[i]->getEnergy();
-        E1 = model[i+1]->getEnergy();
+        E0 = model[i]->getEnergy()[0];
+        E1 = model[i+1]->getEnergy()[0];
         if( (E>=E0)&&(E<=E1) ){
             index[0] = i;
             index[1] = i+1;
             break;
         }
     }
-    if( E>(model[n-1]->getEnergy()) ){
+    if( E>(model[n-1]->getEnergy()[0]) ){
         index[0] = n-2; index[1] = n-1;
     }
     
-    x1 = model[index[0]]->getEnergy();
-    x2 = model[index[1]]->getEnergy();
+    x1 = model[index[0]]->getEnergy()[0];
+    x2 = model[index[1]]->getEnergy()[0];
     y1 = model[index[0]]->getRegistrationEfficiency();
     y2 = model[index[1]]->getRegistrationEfficiency();
     res = LinearApprox(3, E, x1, y1, x2, y2);
@@ -181,8 +181,10 @@ void Dataset::AutoFit(){
     
     int n = data.size();
     HandleTree* t;
+    double E;
     for(int i=0; i<n; i++){
-        t = new HandleTree(data[i], treeName, GetEnergyFromString(data[i]));
+        E = GetEnergyFromString(data[i]);
+        t = new HandleTree(data[i], treeName, GetLuminosity(E));
         t->makeFit();
         mdata.insert(mdata.end(), t);
         fits.insert(fits.end(), t->getFit());
@@ -201,22 +203,24 @@ void Dataset::PowerFit(int startPosition = 0){
     HandleTree* t;
     double E;
     bool do_merge = false;
-    for(int i=startPosition; i<n; i++){
+    for(int i=0; i<n; i++){
         E = GetEnergyFromString(data[i]);
-        if( fabs(GetLuminosity(E))<0.0001 ) //нет светимости для этого файла -> не юзать его совсем
+        if( fabs(GetLuminosity(E)[0])<0.0001 ) //нет светимости для этого файла -> не юзать его совсем
             continue;
         if(!do_merge)
-            t = new HandleTree(data[i], treeName, E);
+            t = new HandleTree(data[i], treeName, GetLuminosity(E));
         else{
             cout << "Merge, " << GetEnergyFromString(data[i]) << endl;
             cout << "WAS: " << t->getEntriesWithConditions() << endl; 
-            t->Merge(data[i], GetEnergyFromString(data[i]));
+            t->Merge(data[i], GetLuminosity(E));
             cout << "IS: " << t->getEntriesWithConditions() << endl;}
             
         t->makeFit();
-        gPad->WaitPrimitive();
-        cout << "Merge it?: ";
-        cin >> do_merge;
+        if(i>=startPosition){
+            gPad->WaitPrimitive();
+            cout << "Merge it?: ";
+            cin >> do_merge;
+            }
         if(!do_merge||(i==n-1)){
             mdata.insert(mdata.end(), t);
             fits.insert(fits.end(), t->getFit());
@@ -226,13 +230,13 @@ void Dataset::PowerFit(int startPosition = 0){
     return;
 }
 
-double Dataset::GetLuminosity(double E){
+vector<double> Dataset::GetLuminosity(double E){
     int n = lum.size();
     for(int i=0; i<n; i++){
         if( fabs(lum[i].first - E) < 0.00001 )
-            return lum[i].second[0];
+            return lum[i].second;
     }
-    return 0;
+    return {0,0,0};
 }
 
 vector<TF1*> Dataset::GetFits(){
@@ -252,7 +256,7 @@ vector<TGraphAsymmErrors*> Dataset::GetTriggers(){
     double** res;
     for(int i=0; i<n; i++){
         res = mdata[i]->triggerEfficiency();
-        E[i] = mdata[i]->getEnergy();
+        E[i] = mdata[i]->getEnergy()[0];
         T[0][i] = res[0][0];
         T[1][i] = res[1][0];
         T[2][i] = res[2][0];
@@ -302,33 +306,34 @@ double Dataset::GetRadcor(double E){
 TGraphAsymmErrors* Dataset::GetCS(){
     //gROOT->SetBatch(kTRUE);
     int n = mdata.size();
-    vector<double> E(n);
+    vector<vector<double>> E(3);
     vector<vector<double>> cs(3);
     double** T;
     double N;
     double* R;
     double r;
-    double L;
-    cout << "DDD: " << n << endl;
+    vector<double> L;
+    cout << "mdata.size = " << n << endl;
     for(int i=0; i<n; i++){
-        E[i] = mdata[i]->getEnergy();
-        if(( mdata[i]->getEnergy() )<0 ){ //отрицательная энергия указывает на некорректно определённые светимости в чейне
+        for(int j=0; j<3; j++)
+            E[j].insert(E[j].end(), mdata[i]->getEnergy()[j]);
+        if(( mdata[i]->getEnergy()[0] )<0 ){ //отрицательная энергия указывает на некорректно определённые светимости в чейне
             cout << "Warning!!!" << endl;
             cs[0][i] = 0;   cs[1][i] = 0;   cs[2][i] = 0;
             continue;}
         T = mdata[i]->triggerEfficiency();
         N = fits[i]->GetParameter(0);
-        R = RegistrationEff(E[i]);
-        r = GetRadcor(E[i]);
+        R = RegistrationEff(E[0][i]);
+        r = GetRadcor(E[0][i]);
         L = mdata[i]->getLum();
-        cout << N << '\t' << L << '\t' << T[0][2] << '\t' << r << '\t' << R[0] << '\t' << N/(L*T[0][2]*r*R[0]) << endl;
-        cs[0].insert( cs[0].end(), N/(L*T[0][2]*r*R[0]) );
-        cs[1].insert( cs[1].end(), cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[1][2]/T[0][2],2) + pow(R[1]/R[0],2) ) );
-        cs[2].insert( cs[2].end(), cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[2][2]/T[0][2],2) + pow(R[2]/R[0],2) ) );
+        cout << N << '\t' << L[0] << '\t' << T[0][2] << '\t' << r << '\t' << R[0] << '\t' << N/(L[0]*T[0][2]*r*R[0]) << endl;
+        cs[0].insert( cs[0].end(), N/(L[0]*T[0][2]*r*R[0]) );
+        cs[1].insert( cs[1].end(), cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[1][2]/T[0][2],2) + pow(R[1]/R[0],2) + pow(L[1]/L[0],2) ) );
+        cs[2].insert( cs[2].end(), cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[2][2]/T[0][2],2) + pow(R[2]/R[0],2) + pow(L[2]/L[0],2) ) );
     }
     //gROOT->SetBatch(kFALSE);
     cross_sections = cs;
-    TGraphAsymmErrors* t = new TGraphAsymmErrors(n, &E[0], &cs[0][0], 0, 0, &cs[2][0], &cs[1][0]);
+    TGraphAsymmErrors* t = new TGraphAsymmErrors(n, &E[0][0], &cs[0][0], &E[2][0], &E[1][0], &cs[2][0], &cs[1][0]);
     t->Draw();
     return t;
 }
@@ -340,18 +345,20 @@ void Dataset::Save(string path = "Outputs/result.root"){
     TH1D histF;
     double cs[3];
     double regEff[3];
-    double E, radcor;
+    double radcor;
     double trigger[3];
+    vector<double> L;
+    vector<double> E;
     double* rE;
     double** trig;
     
     t->Branch("fitF", "TF1", &fitF, 32000, 0);
-    //cout << sizeof(TH1D) << endl;
     t->Branch("histF", "TH1D", &histF, 32000, 0);
-    t->Branch("E", &E, "E/D");
+    t->Branch("E", &E, "E[3]/D");
     t->Branch("cs", &cs, "cs[3]/D");
     t->Branch("regEff", &regEff, "regEff[3]/D");
     t->Branch("trigger", &trigger, "trigger[3]/D");
+    t->Branch("lum", &L, "lum[3]/D");
     t->Branch("radcor", &radcor, "radcor/D");
     
     int n = fits.size();
@@ -362,9 +369,10 @@ void Dataset::Save(string path = "Outputs/result.root"){
         cs[1] = cross_sections[1][i];
         cs[2] = cross_sections[2][i];
         E = model[i]->getEnergy();
-        rE = RegistrationEff(E);
+        rE = RegistrationEff(E[0]);
         trig = mdata[i]->triggerEfficiency();
-        radcor = GetRadcor(E);
+        radcor = GetRadcor(E[0]);
+        L = model[i]->getLum();
         regEff[0] = rE[0]; regEff[1] = rE[1]; regEff[2] = rE[2];
         trigger[0] = trig[0][0]; trigger[1] = trig[1][0]; trigger[2] = trig[2][0];
         t->Fill();
@@ -372,34 +380,6 @@ void Dataset::Save(string path = "Outputs/result.root"){
     }
     
     t->Write();
-    f->Close();
-    //delete t;
-    return;
-}
-
-void Dataset::Read(string path = "Outputs/result.root"){
-    TFile* f = TFile::Open(path.c_str());
-    fits.clear();
-    hists.clear();
-    cross_sections.clear();
-    
-    TTree* t = (TTree*)(f->Get("t"));
-    
-    TTreeReader theReader(t);
-    TTreeReaderValue<TF1> fitBranch(theReader, "fitF");
-    TTreeReaderValue<TH1D> histBranch(theReader, "histF");
-    TTreeReaderArray<double> csBranch(theReader, "cs");
-
-    while(theReader.Next()){
-       TF1 f = *fitBranch;
-       TH1D h = *histBranch;
-       fits.insert(fits.end(), &f);
-       hists.insert(hists.end(), &h);
-       vector<double> cs0(3);
-       cs0[0] = csBranch[0]; cs0[1] = csBranch[1]; cs0[2] = csBranch[2];
-       cross_sections.insert(cross_sections.end(), cs0);
-    }
-    
     f->Close();
     return;
 }

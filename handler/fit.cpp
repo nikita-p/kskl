@@ -67,10 +67,11 @@ double* HandleTree::getRegistrationEfficiency(){ //YES
     return regEff;
 }
 
-void HandleTree::Merge(string inPath, double lum){ //YES
+void HandleTree::Merge(string inPath, vector<double> lum){ //YES
     chain->Add(inPath.c_str());
     energies.insert(energies.end(), atof(inPath.substr( inPath.find_last_of('/') + 2, inPath.length() - 5).c_str()) );
-    lums.insert(lums.end(), lum>0 ? lum : 0);
+    vector<double> zeros = {0,0,0};
+    lums.insert(lums.end(), lum[0]>0 ? lum : zeros);
     delete fitF; // удалить старые значения полей, т.к. информация становится устаревшей
     delete hist;
     fitF = NULL;
@@ -86,10 +87,10 @@ void HandleTree::makeHist(){ //YES
         hist = NULL;
     }
    
-    hist = new TH1D(Form("hist%.1f",getEnergy()), Form("Inv mass %.1f", getEnergy()), 50, 450, 550);
+    hist = new TH1D(Form("hist%.1f",getEnergy()[0]), Form("Inv mass %.1f", getEnergy()[0]), 50, 450, 550);
     TCanvas c("C", "Can", 500, 400);
     c.SetBatch(kTRUE);
-    chain->Draw(Form("m>>hist%.1f", getEnergy()), conditions.c_str()); //простой метод получения гистограммы из дерева, но плохой (не хочу рисовать)
+    chain->Draw(Form("m>>hist%.1f", getEnergy()[0]), conditions.c_str()); //простой метод получения гистограммы из дерева, но плохой (не хочу рисовать)
     c.SetBatch(kFALSE);
     gROOT->SetBatch(kFALSE);
     /*
@@ -122,7 +123,7 @@ void HandleTree::makeFit(){ //YES
     double xmin = 450;
     double xmax = 550;
 
-    fitF = new TF1(Form("fitF%.1f",getEnergy()), Gauss, xmin, xmax, 5);
+    fitF = new TF1(Form("fitF%.1f",getEnergy()[0]), Gauss, xmin, xmax, 5);
     fitF->SetParLimits(0, 0.0, 1.E7);
     fitF->SetParLimits(1, xmin, xmax);
     fitF->SetParLimits(2, 0.1, 40.);
@@ -135,25 +136,31 @@ void HandleTree::makeFit(){ //YES
     return;
 }
 
-double HandleTree::getEnergy(){
-    int n = energies.size();
+vector<double> HandleTree::getEnergy(){
     double EL = 0;
     double L = 0;
+    int n = energies.size();
     for(int i=0; i<n; i++){
-        EL += energies[i]*lums[i];
-        L += lums[i];
+        EL += energies[i]*lums[i][0];
+        L += lums[i][0];
     }
+    vector<double> v(3);
     if( fabs(EL)>0.001 ){
-        return EL/L;
+        v[0] = EL/L;
+        v[1] = (*max_element(energies.begin(),energies.end()) - EL/L);
+        v[2] = (EL/L - *min_element(energies.begin(),energies.end()));
+        return v;
     }
-    return -energies[n/2]; //отрицательная энергия указывает на то, что не все светимости определены корректно
+    return {-energies[n/2],0,0}; //отрицательная энергия указывает на то, что не все светимости определены корректно
 }
 
-double HandleTree::getLum(){
+vector<double> HandleTree::getLum(){
     int n = lums.size();
-    double L = 0;
-    for(int i=0; i<n; i++)
-        L += lums[i];
+    vector<double> L(3);
+    for(int i=0; i<n; i++){
+        L[0] += lums[i][0];
+        L[1] += lums[i][1];
+        L[2] += lums[i][2];
+        }
     return L;
 }
-
