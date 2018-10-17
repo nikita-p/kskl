@@ -80,32 +80,38 @@ void HandleTree::Merge(string inPath, double lum){ //YES
 }
 
 void HandleTree::makeHist(){ //YES
+
     if(hist!=NULL){
         delete hist;
         hist = NULL;
     }
    
     hist = new TH1D(Form("hist%.1f",getEnergy()), Form("Inv mass %.1f", getEnergy()), 50, 450, 550);
-    //chain->Draw("m>>hist", conditions.c_str()); //простой метод получения гистограммы из дерева, но плохой (не хочу рисовать)
-    
+    TCanvas c("C", "Can", 500, 400);
+    c.SetBatch(kTRUE);
+    chain->Draw(Form("m>>hist%.1f", getEnergy()), conditions.c_str()); //простой метод получения гистограммы из дерева, но плохой (не хочу рисовать)
+    c.SetBatch(kFALSE);
+    gROOT->SetBatch(kFALSE);
+    /*
     chain->GetEntries(); //перед GetTree нужно вставить любую операцию работы с чейном, иначе всё рушится (баг рута, скорее всего)
-    TTree* t = (TTree*)chain->GetTree()->CopyTree(conditions.c_str());
+    TTree* t = (TTree*)( chain->GetTree()->CopyTree(conditions.c_str()) );
     // все события в таком дереве подходящие, нужно только пробежаться по ним и записать в гистограмму
    
     TTreeReader theReader(t);
     TTreeReaderValue<Double_t> invariantMass(theReader, "m");
 
+    int counter = 0;
     while(theReader.Next()){ 
         hist->Fill(*invariantMass);   //заполняю гистограмму переменной
+        counter++;
     }
-    //cout << hist->GetEntries() << endl;    
+    cout << counter << endl;    */
     return;
 }
 
 void HandleTree::makeFit(){ //YES
     
-    if(hist==NULL)
-        makeHist();
+    makeHist();
     
     gStyle->TStyle::SetOptFit(1111);
     gStyle->TStyle::SetOptStat(0);
