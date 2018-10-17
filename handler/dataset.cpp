@@ -339,15 +339,20 @@ void Dataset::Save(string path = "Outputs/result.root"){
     TF1 fitF;
     TH1D histF;
     double cs[3];
-    double* regEff = NULL;
-    double E;
+    double regEff[3];
+    double E, radcor;
+    double trigger[3];
+    double* rE;
+    double** trig;
     
     t->Branch("fitF", "TF1", &fitF, 32000, 0);
     //cout << sizeof(TH1D) << endl;
     t->Branch("histF", "TH1D", &histF, 32000, 0);
     t->Branch("E", &E, "E/D");
     t->Branch("cs", &cs, "cs[3]/D");
-    //t->Branch("regEff", regEff, "regEff[3]/D");
+    t->Branch("regEff", &regEff, "regEff[3]/D");
+    t->Branch("trigger", &trigger, "trigger[3]/D");
+    t->Branch("radcor", &radcor, "radcor/D");
     
     int n = fits.size();
     for(int i=0; i<n; i++){
@@ -357,7 +362,11 @@ void Dataset::Save(string path = "Outputs/result.root"){
         cs[1] = cross_sections[1][i];
         cs[2] = cross_sections[2][i];
         E = model[i]->getEnergy();
-        //regEff = RegistrationEff(E);
+        rE = RegistrationEff(E);
+        trig = mdata[i]->triggerEfficiency();
+        radcor = GetRadcor(E);
+        regEff[0] = rE[0]; regEff[1] = rE[1]; regEff[2] = rE[2];
+        trigger[0] = trig[0][0]; trigger[1] = trig[1][0]; trigger[2] = trig[2][0];
         t->Fill();
         //delete regEff;
     }
