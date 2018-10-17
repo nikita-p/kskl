@@ -199,10 +199,14 @@ void Dataset::PowerFit(int startPosition = 0){
     
     int n = data.size();
     HandleTree* t;
+    double E;
     bool do_merge = false;
     for(int i=startPosition; i<n; i++){
+        E = GetEnergyFromString(data[i]);
+        if( fabs(GetLuminosity(E))<0.0001 ) //нет светимости для этого файла -> не юзать его совсем
+            continue;
         if(!do_merge)
-            t = new HandleTree(data[i], treeName, GetEnergyFromString(data[i]));
+            t = new HandleTree(data[i], treeName, E);
         else{
             cout << "Merge, " << GetEnergyFromString(data[i]) << endl;
             cout << "WAS: " << t->getEntriesWithConditions() << endl; 
@@ -295,7 +299,7 @@ double Dataset::GetRadcor(double E){
 }
 
 
-TGraphAsymmErrors* Dataset::GetCS(){ //дописать!!
+TGraphAsymmErrors* Dataset::GetCS(){
     //gROOT->SetBatch(kTRUE);
     int n = mdata.size();
     vector<double> E(n);
@@ -304,18 +308,21 @@ TGraphAsymmErrors* Dataset::GetCS(){ //дописать!!
     double N;
     double* R;
     double r;
+    double L;
     cout << "DDD: " << n << endl;
     for(int i=0; i<n; i++){
         E[i] = mdata[i]->getEnergy();
-        if(GetLuminosity(E[i])==0){
+        if(( mdata[i]->getEnergy() )<0 ){ //отрицательная энергия указывает на некорректно определённые светимости в чейне
+            cout << "Warning!!!" << endl;
             cs[0][i] = 0;   cs[1][i] = 0;   cs[2][i] = 0;
             continue;}
         T = mdata[i]->triggerEfficiency();
         N = fits[i]->GetParameter(0);
         R = RegistrationEff(E[i]);
         r = GetRadcor(E[i]);
-        cout << N << '\t' << GetLuminosity(E[i]) << '\t' << T[0][2] << '\t' << r << '\t' << R[0] << '\t' << N/(GetLuminosity(E[i])*T[0][2]*r*R[0]) << endl;
-        cs[0].insert( cs[0].end(), N/(GetLuminosity(E[i])*T[0][2]*r*R[0]) );
+        L = mdata[i]->getLum();
+        cout << N << '\t' << L << '\t' << T[0][2] << '\t' << r << '\t' << R[0] << '\t' << N/(L*T[0][2]*r*R[0]) << endl;
+        cs[0].insert( cs[0].end(), N/(L*T[0][2]*r*R[0]) );
         cs[1].insert( cs[1].end(), cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[1][2]/T[0][2],2) + pow(R[1]/R[0],2) ) );
         cs[2].insert( cs[2].end(), cs[0][i]*sqrt( pow((fits[i]->GetParError(0))/N,2) + pow(T[2][2]/T[0][2],2) + pow(R[2]/R[0],2) ) );
     }

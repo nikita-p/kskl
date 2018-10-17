@@ -51,7 +51,7 @@ class Dataset{
     void ClearMdata();
 
 public:
-    Dataset(string, string, string, string);
+    Dataset(string model, string data, string lum, string radcor);
     double* RegistrationEff(double);
     double GetLuminosity(double);
     double GetRadcor(double);
@@ -61,6 +61,8 @@ public:
     vector<TF1*> GetFits();
     vector<TH1D*> GetHists();
     vector<TGraphAsymmErrors*> GetTriggers();
+    TGraphAsymmErrors* GetEffRegs(); //написать
+    TGraphAsymmErrors* GetLums(); //написать
     TGraphAsymmErrors* GetCS();
     
     void Save(string);
