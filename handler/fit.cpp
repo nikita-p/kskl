@@ -156,7 +156,7 @@ vector<double> HandleTree::getEnergy(){
 
 vector<double> HandleTree::getLum(){
     int n = lums.size();
-    vector<double> L(3);
+    vector<double> L = {0, 0, 0};
     for(int i=0; i<n; i++){
         L[0] += lums[i][0];
         L[1] += lums[i][1];
