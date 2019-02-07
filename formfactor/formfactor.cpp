@@ -158,12 +158,14 @@ const double MDVM::w0_omg = 8.49;
         double KO2 = CO2/6.;
         double KP = mode ? CP/3. : n*CP/3.;
         
-        TComplex F1 = F0(x, par, mode) + KR*BW_Rho1(s) + KR2*BW_Rho2(s) + KR3*BW_Rho3(s) + KR4*BW_Rho4(s) + KR5*BW_Rho5(s) + KO*BW_Omg1(s) + KO2*BW_Omg2(s) + KP*BW_Phi1(s);
+        TComplex F1 = F0(x, par, mode) + KR*BW_Rho1(s) + KO*BW_Omg1(s) + KP*BW_Phi1(s) + KR2*BW_Rho2(s) + KR3*BW_Rho3(s) + KR4*BW_Rho4(s) + KR5*BW_Rho5(s) + KO2*BW_Omg2(s);
         return F1;
     }
 
     double MDVM::Cross_Section(double* x, double* par, bool mode){
         double s = TMath::Power(x[0]*1E3, 2);
+        if(x[0]<0.4976*2)
+            return 0;
         double fabs = TComplex::Abs( F1(x, par, mode) );
         double cs = (TMath::Pi()/3.)*TMath::Power(ALPHA,2)*C*TMath::Power(BETA(s),3)*TMath::Power(fabs,2)/s;
         return cs;
@@ -171,7 +173,7 @@ const double MDVM::w0_omg = 8.49;
    
     TF1* MDVM::Cross_Section(bool mode){
         const int Npars = 8;
-        TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 1.1, 2.1, Npars);
+        TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
         fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#rho(1570)}", "C_{#rho(1720)}", "C_{#rho(1900)}");
         fcs_c->SetParameters(1.123, 1.027, 1.101, 0.1, 0.1, 0.1, 0.1, 0.1);
         return fcs_c;

@@ -13,10 +13,10 @@
 #include "k0k0.cpp"
 
 // definition of shared parameter charged mode
-int iparC[8] = { 0, 1, 2, 3, 4, 5 ,6, 7 };
+int iparC[10] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9 };
 
 // neutral mode
-int iparN[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+int iparN[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
 struct GlobalChi2 {
    GlobalChi2(  ROOT::Math::IMultiGenFunction & f1,
@@ -39,7 +39,7 @@ struct GlobalChi2 {
    const  ROOT::Math::IMultiGenFunction * fChi2_2;
 };
 
-void combinedFit(double end) { //end - граница (в МэВ), до которой будет производиться фит
+ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ), до которой будет производиться фит
 
   TGraphAsymmErrors* hN = getGraph(0);
   TGraphAsymmErrors* hC = fileKK();
@@ -59,7 +59,7 @@ void combinedFit(double end) { //end - граница (в МэВ), до кото
   ROOT::Fit::FillData(dataC, hC);
 
   ROOT::Fit::DataRange rangeN;
-  rangeN.SetRange(1.09, end);
+  rangeN.SetRange(1., end);
   ROOT::Fit::BinData dataN(opt,rangeN);
   ROOT::Fit::FillData(dataN, hN);
 
@@ -70,8 +70,8 @@ void combinedFit(double end) { //end - граница (в МэВ), до кото
 
   ROOT::Fit::Fitter fitter;
 
-  const int Npar = 8;
-  double par0[Npar] = { 1.139, 1.467, .999, 0.1, 0.1, 0.1, 0.1, 0.1};
+  const int Npar = 10;
+  double par0[Npar] = { 1.139, 1.467, .999, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   
   // create before the parameter settings in order to fix or set range on them
   fitter.Config().SetParamsSettings(Npar,par0);
@@ -113,5 +113,65 @@ void combinedFit(double end) { //end - граница (в МэВ), до кото
   fN->SetLineColor(kRed);
   hN->SetTitle("Neutral kaons");
   hN->GetListOfFunctions()->Add(fN);
+  
+  
   hN->Draw("ap");
+  
+  
+  //Comparison with e+e- --> K0K0 CMD-3 data.
+  //Phi K0K0 graph. This data is not fitted.
+  //It is needed to expand x and y limits on the bottom graph to see this
+  TGraphAsymmErrors* hphik0k0 = phik0k0();
+  hphik0k0->Draw("p same"); 
+  //
+  
+  return result;
+}
+
+
+void checker(){
+    const int N = 50;
+    double e[N];
+    double rho[N];
+    double omg[N];
+    double phi[N];
+    ROOT::Fit::FitResult res;
+    for(int i=0; i<50; i++){
+        e[i] = 1.2 + (2. - 1.2)*i/N;
+        res = combinedFit(e[i]);
+        rho[i] = res.GetParams()[0];
+        omg[i] = res.GetParams()[1];
+        phi[i] = res.GetParams()[2];
+    }
+    TGraph* gr = new TGraph(N, &e[0], &rho[0]);
+    TGraph* go = new TGraph(N, &e[0], &omg[0]);
+    TGraph* gp = new TGraph(N, &e[0], &phi[0]);
+    
+    gr->SetLineColor(kBlue);
+    go->SetLineColor(kRed);
+    gp->SetLineColor(kGreen);
+    
+    TCanvas* c = new TCanvas("can", "Checker", 800, 500);
+    
+    gr->Draw();
+    go->Draw("same");
+    gp->Draw("same");
+    
+    return;
+}
+
+void writer(ROOT::Fit::FitResult res){
+    double e = 0.99;
+    int n = 200;
+    ofstream o("fitResult.dat");
+    double* par;
+    const double* constpar = res.GetParams();
+    for(int i=0; i<res.NPar(); i++)
+        par[i] = constpar[i];
+    for(int i=0; i<=n; i++){
+        o << i << '\t' << e*1E3 << '\t' << MDVM::Cross_Section(&e, par, 0) << endl;
+        e += (2. - 0.99)/n;
+    }
+    o.close();
+    return;
 }

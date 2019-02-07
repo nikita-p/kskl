@@ -1,3 +1,5 @@
+#include <fstream>
+
 void reader(TTree* t, int n0, double* cs0, double* cs1, double* cs2, double* e0, double* e1, double* e2, double* rc, bool vis){
     
     TTreeReader theReader(t);
@@ -25,6 +27,55 @@ void reader(TTree* t, int n0, double* cs0, double* cs1, double* cs2, double* e0,
     return;
 }
 
+void read_dat(string filename, int n0, double* cs0, double* cs1, double* cs2, double* e0, double* e1, double* e2){
+    
+    ifstream o(filename.c_str());
+    
+    int k;
+    for(int i=0; i<n0; i++){
+        o >> k >> e0[i] >> e1[i] >> cs0[i] >> cs1[i];
+        e0[i] = 1E-3*e0[i];
+        e1[i] = 1E-3*e1[i];
+        e2[i] = e1[i];
+        cs2[i] = cs1[i];
+    }
+    o.close();
+    
+    return;
+}
+
+TGraphAsymmErrors* phik0k0(){
+    const int n = 25;
+    double cs0[n];
+    double cs1[n];
+    double cs2[n];
+    double e0[n];
+    double e1[n];
+    double e2[n];
+    
+    read_dat("k0k0_koz.dat", n, cs0, cs1, cs2, e0, e1, e2);
+    TGraphAsymmErrors* gr = new TGraphAsymmErrors(n, &e0[0], &cs0[0], &e2[0], &e1[0], &cs2[0], &cs1[0]);
+    return gr;
+}
+
+double radcor(double e){
+    e *= 0.5E3;
+    ifstream r("radcors.dat");
+    double E, Elast, RC, RClast;
+    E = 0;
+    while(!r.eof()){
+        Elast = E;
+        RClast = RC;
+        r >> E >> RC;
+        if(E>e && Elast<=e){
+            //cout << "FFF\t" << RClast << '\t' << RC << endl;
+            return RClast + (RC - RClast)*(e - Elast)/(E - Elast);
+        }
+    }
+    r.close();
+    return 0;
+}
+
 TGraphAsymmErrors* getGraph(bool vis){
     
     TFile* f11 = TFile::Open("res11.root");
@@ -35,11 +86,14 @@ TGraphAsymmErrors* getGraph(bool vis){
     TTree* t12 = (TTree*)f12->Get("t");
     TTree* t17 = (TTree*)f17->Get("t");
     
+    int n_koz = 0;
+    if(vis==false)
+        n_koz = 25; //cross section from e kozyrev article
     int n11 = t11->GetEntries();
     int n12 = t12->GetEntries();
     int n17 = t17->GetEntries();
     
-    const int n = n11 + n12 + n17;
+    const int n = n_koz + n11 + n12 + n17;
     
     double cs0[n];
     double cs1[n];
@@ -49,13 +103,21 @@ TGraphAsymmErrors* getGraph(bool vis){
     double e2[n];
     double rc[n];
     
-    reader(t11, 0, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
-    reader(t12, n11, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
-    reader(t17, n11+n12, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
+    if(vis==false)
+        read_dat("k0k0_koz.dat", n_koz, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0]);
+    reader(t11, n_koz, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
+    reader(t12, n_koz + n11, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
+    reader(t17, n_koz + n11 + n12, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
     
     f11->Close();
     f12->Close();
     f17->Close();
+    
+    for(int i=n_koz; i<n; i++){
+        cs0[i] *= rc[i]/radcor(e0[i]);
+        cs1[i] *= rc[i]/radcor(e0[i]);
+        cs2[i] *= rc[i]/radcor(e0[i]); 
+    }
     
     TGraphAsymmErrors* gr = new TGraphAsymmErrors(n, &e0[0], &cs0[0], &e2[0], &e1[0], &cs2[0], &cs1[0]);
     /*
