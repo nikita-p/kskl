@@ -13,68 +13,74 @@
 #include "k0k0.cpp"
 
 // definition of shared parameter charged mode
-int iparC[10] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9 };
-
-// neutral mode
-int iparN[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+const int n0 = 10;
+int ipar[n0] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9 };
 
 struct GlobalChi2 {
-   GlobalChi2(  ROOT::Math::IMultiGenFunction & f1,
-                ROOT::Math::IMultiGenFunction & f2) :
-      fChi2_1(&f1), fChi2_2(&f2) {}
+   const  ROOT::Math::IMultiGenFunction *fChi2_1;
+   const  ROOT::Math::IMultiGenFunction *fChi2_2;
+   const  ROOT::Math::IMultiGenFunction *fChi2_3;
 
-   // parameter vector is first background (in common 1 and 2)
-   // and then is signal (only in 2)
+   GlobalChi2(  ROOT::Math::IMultiGenFunction & f1, ROOT::Math::IMultiGenFunction & f2, ROOT::Math::IMultiGenFunction & f3) : 
+                                         fChi2_1(&f1), fChi2_2(&f2), fChi2_3(&f3) {}
+
    double operator() (const double *par) const {
-      double p1[9];
-      for (int i = 0; i < 9; ++i) p1[i] = par[iparC[i] ];
-
-      double p2[9];
-      for (int i = 0; i < 9; ++i) p2[i] = par[iparN[i] ];
-
-      return (*fChi2_1)(p1) + (*fChi2_2)(p2);
+      double p[n0];
+      for (int i = 0; i < n0; ++i) 
+          p[i] = par[ ipar[i] ];
+      return (*fChi2_1)(p) + (*fChi2_2)(p) + (*fChi2_3)(p);
    }
-
-   const  ROOT::Math::IMultiGenFunction * fChi2_1;
-   const  ROOT::Math::IMultiGenFunction * fChi2_2;
 };
 
 ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ), до которой будет производиться фит
 
-  TGraphAsymmErrors* hN = getGraph(0);
-  TGraphAsymmErrors* hC = fileKK();
+  TGraphAsymmErrors* h0 = fileKK();
+  TGraphAsymmErrors* h1 = getGraph(0);
+  TGraphAsymmErrors* h2 = getK0K0Phi();
 
-  TF1* fC = MDVM::Cross_Section(1);
-  TF1* fN = MDVM::Cross_Section(0);
+  TF1* f0 = MDVM::Cross_Section(1);
+  TF1* f1 = MDVM::Cross_Section(0);
+  TF1* f2 = MDVM::Cross_Section(0);
 
   // perform now global fit
-  ROOT::Math::WrappedMultiTF1 wfC(*fC,1);
-  ROOT::Math::WrappedMultiTF1 wfN(*fN,1);
+  ROOT::Math::WrappedMultiTF1 wf0(*f0,1);
+  ROOT::Math::WrappedMultiTF1 wf1(*f1,1);
+  ROOT::Math::WrappedMultiTF1 wf2(*f2,1);
 
   ROOT::Fit::DataOptions opt;
-  ROOT::Fit::DataRange rangeC;
+  
+  ROOT::Fit::DataRange range0;
+  ROOT::Fit::DataRange range1;
+  ROOT::Fit::DataRange range2;
+  
   // set the data range
-  rangeC.SetRange(1.043, end);
-  ROOT::Fit::BinData dataC(opt,rangeC);
-  ROOT::Fit::FillData(dataC, hC);
+  range0.SetRange(1.043, end);
+  range1.SetRange(1.1, end);
+  range2.SetRange(1.0, 1.1);
+  
+  ROOT::Fit::BinData data0(opt,range0);
+  ROOT::Fit::BinData data1(opt,range1);
+  ROOT::Fit::BinData data2(opt,range2);
+  
+  ROOT::Fit::FillData(data0, h0);
+  ROOT::Fit::FillData(data1, h1);
+  ROOT::Fit::FillData(data2, h2);
 
-  ROOT::Fit::DataRange rangeN;
-  rangeN.SetRange(1., end);
-  ROOT::Fit::BinData dataN(opt,rangeN);
-  ROOT::Fit::FillData(dataN, hN);
 
-  ROOT::Fit::Chi2Function chi2_C(dataC, wfC);
-  ROOT::Fit::Chi2Function chi2_N(dataN, wfN);
+  ROOT::Fit::Chi2Function ch0(data0, wf0);
+  ROOT::Fit::Chi2Function ch1(data1, wf1);
+  ROOT::Fit::Chi2Function ch2(data2, wf2);
 
-  GlobalChi2 globalChi2(chi2_C, chi2_N);
+  GlobalChi2 chi2(ch0, ch1, ch2);
 
   ROOT::Fit::Fitter fitter;
 
-  const int Npar = 10;
-  double par0[Npar] = { 1.139, 1.467, .999, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  //double par0[Npar] = { 1.139, 1.467, .999, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  double par0[n0] = { 1.067, 1.28, 1.038, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  
   
   // create before the parameter settings in order to fix or set range on them
-  fitter.Config().SetParamsSettings(Npar,par0);
+  fitter.Config().SetParamsSettings(n0,par0);
   
   /*
   fitter.Config().ParSettings(0).Fix();
@@ -85,45 +91,44 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   fitter.Config().SetMinimizer("Minuit2","Migrad");
 
   // fit FCN function directly
-  fitter.FitFCN(Npar,globalChi2,0,dataC.Size()+dataN.Size(),true);
+  int size = data0.Size() + data1.Size() + data2.Size();
+  fitter.FitFCN(n0, chi2, 0, size, true);
   ROOT::Fit::FitResult result = fitter.Result();
   result.Print(std::cout);
 
   TCanvas * c1 = new TCanvas("Simfit","Simultaneous fit of two histograms",
                              10,10,900,900);
 
-  c1->Divide(1,2);
-  c1->cd(1)->SetGrid();
-  c1->cd(2)->SetGrid();
-  c1->cd(1)->SetLogy();
-  c1->cd(2)->SetLogy();
-  c1->cd(1);  
+  c1->Divide(1,3);
+  for(int i=1; i<=3; i++){
+    c1->cd(i)->SetGrid();
+    c1->cd(i)->SetLogy();
+  }
   gStyle->SetOptFit(1111);
 
-  fC->SetFitResult( result, iparC);
-  fC->SetRange(rangeC().first, rangeC().second);
-  fC->SetLineColor(kBlue);
-  hC->SetTitle("Charged kaons");
-  hC->GetListOfFunctions()->Add(fC);
-  hC->Draw("ap");
+  c1->cd(1);
+  f0->SetFitResult( result, ipar);
+  f0->SetRange(range0().first, range0().second);
+  f0->SetLineColor(kBlue);
+  h0->SetTitle("Charged kaons");
+  h0->GetListOfFunctions()->Add(f0);
+  h0->Draw("ap");
 
   c1->cd(2);
-  fN->SetFitResult( result, iparN);
-  fN->SetRange(rangeN().first, rangeN().second);
-  fN->SetLineColor(kRed);
-  hN->SetTitle("Neutral kaons");
-  hN->GetListOfFunctions()->Add(fN);
+  f1->SetFitResult( result, ipar);
+  f1->SetRange(range1().first, range1().second);
+  f1->SetLineColor(kRed);
+  h1->SetTitle("Neutral kaons");
+  h1->GetListOfFunctions()->Add(f1);
+  h1->Draw("ap");
   
-  
-  hN->Draw("ap");
-  
-  
-  //Comparison with e+e- --> K0K0 CMD-3 data.
-  //Phi K0K0 graph. This data is not fitted.
-  //It is needed to expand x and y limits on the bottom graph to see this
-  TGraphAsymmErrors* hphik0k0 = phik0k0();
-  hphik0k0->Draw("p same"); 
-  //
+  c1->cd(3);
+  f2->SetFitResult( result, ipar);
+  f2->SetRange(range2().first, range2().second);
+  f2->SetLineColor(kGreen);
+  h2->SetTitle("Neutral kaons. Peak");
+  h2->GetListOfFunctions()->Add(f2);
+  h2->Draw("ap");
   
   return result;
 }
@@ -162,15 +167,20 @@ void checker(){
 
 void writer(ROOT::Fit::FitResult res){
     double e = 0.99;
-    int n = 200;
+    int n = 1000;
     ofstream o("fitResult.dat");
-    double* par;
+    double* par = new double [res.NPar()];
     const double* constpar = res.GetParams();
     for(int i=0; i<res.NPar(); i++)
         par[i] = constpar[i];
+    for(int i=0; i<n; i++){
+        o << i << '\t' << e*1E3 << '\t' << MDVM::Cross_Section(&e, par, 0) << endl;
+        e += (1.3 - 0.99)/n;
+    }
+        
     for(int i=0; i<=n; i++){
         o << i << '\t' << e*1E3 << '\t' << MDVM::Cross_Section(&e, par, 0) << endl;
-        e += (2. - 0.99)/n;
+        e += (2.1 - 1.3)/n;
     }
     o.close();
     return;

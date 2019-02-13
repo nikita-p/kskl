@@ -33,7 +33,7 @@ class MDVM{
     static double WOmgX(double s, double W0, double MX){
         return W0 * PV3(s,m_pi,m_pi,m_pi0) / PV3(MX*MX,m_pi,m_pi,m_pi0); }
     static double WPhiX(double s, double W0, double MX){
-        return W0 * PV2(s, MX, m_pi);  }
+        return W0 * PV2(s, MX, m_k0);  }
     
     
     static TComplex BW(double, double, double, double(*WX)(double, double, double));
@@ -58,9 +58,11 @@ class MDVM{
     static TComplex BW_Rho3(double s){
         return BW(s, 1720, 250, WRhoX); }
     static TComplex BW_Rho4(double s){ //из pdg видно, что это какая-то хренотень
-        return BW(s, 1900, 120, WRhoX); }
+        return BW(s, 1880, 160, WRhoX); }
     static TComplex BW_Rho5(double s){ //из pdg видно, что это какая-то полнейшая хренотень
         return BW(s, 2155, 320, WRhoX); }
+    static TComplex BW_Phi2(double s){
+        return BW(s, 2188, 83, WPhiX);  }
     
 public:
     
@@ -86,13 +88,13 @@ const double MDVM::ALPHA = 7.297E-3;
 
 const double MDVM::m_rho = 775.26;
 const double MDVM::m_omg = 782.65;
-const double MDVM::m_phi = 1019.461;
+const double MDVM::m_phi = 1019.464;//1;
 
 const double MDVM::m_k0  = 497.6;
 const double MDVM::m_pi  = 139.57;
 const double MDVM::m_pi0 = 135.;
 
-const double MDVM::w0_phi = 4.249;
+const double MDVM::w0_phi = 4.247;//9;
 const double MDVM::w0_rho = 149.1;
 const double MDVM::w0_omg = 8.49;
 
@@ -123,7 +125,7 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TComplex MDVM::F0(double* x, double* par, bool mode){
-        double n = 1.027;
+        double n = 1.005;//1.027;
         double s = TMath::Power(x[0]*1E3, 2);
         double CR = par[0];
         double CO = par[1];
@@ -143,22 +145,26 @@ const double MDVM::w0_omg = 8.49;
         double CR = par[3];
         double CR2 = par[5];
         double CR3 = par[6];
-        double CR4 = par[7];
-        double CR5 = 1 - par[0] - par[3] - par[5] - par[6] - par[7];
+        //double CR4 = par[7];
+        double CR5 = 1 - par[0] - par[3] - par[5] - par[6];// - par[7];
         double CO = par[4];
-        double CO2 = 1 - par[1] - par[4];
-        double CP = 1 - par[2];
+        double CO2 = par[7];//1 - par[1] - par[4];
+        double CO3 = 1 - par[1] - par[4] - par[7];
+        double CP = par[8];//1 - par[2];
+        double CP2 = 1 - par[2] - par[8];
         
         double KR = mode ? CR/2. : -CR/2.;
         double KR2 = mode ? CR2/2. : -CR2/2.;
         double KR3 = mode ? CR3/2. : -CR3/2.;
-        double KR4 = mode ? CR4/2. : -CR4/2.;
+        //double KR4 = mode ? CR4/2. : -CR4/2.;
         double KR5 = mode ? CR5/2. : -CR5/2.;
         double KO = CO/6.;
         double KO2 = CO2/6.;
         double KP = mode ? CP/3. : n*CP/3.;
+        double KP2 = mode ? CP2/3. : n*CP2/3.;
+        double KO3 = CO3/6.;
         
-        TComplex F1 = F0(x, par, mode) + KR*BW_Rho1(s) + KO*BW_Omg1(s) + KP*BW_Phi1(s) + KR2*BW_Rho2(s) + KR3*BW_Rho3(s) + KR4*BW_Rho4(s) + KR5*BW_Rho5(s) + KO2*BW_Omg2(s);
+        TComplex F1 = F0(x, par, mode) + KR*BW_Rho1(s) + KO*BW_Omg1(s) + KP*BW_Phi1(s) + KR2*BW_Rho2(s) + KR3*BW_Rho3(s) + /*KR4*BW_Rho4(s) +*/ (KR5+KO3)*BW_Rho5(s) + KO2*BW_Omg2(s) + KP2*BW_Phi2(s);
         return F1;
     }
 
@@ -172,10 +178,10 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TF1* MDVM::Cross_Section(bool mode){
-        const int Npars = 8;
+        const int Npars = 9;
         TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
-        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#rho(1570)}", "C_{#rho(1720)}", "C_{#rho(1900)}");
-        fcs_c->SetParameters(1.123, 1.027, 1.101, 0.1, 0.1, 0.1, 0.1, 0.1);
+        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#rho(1570)}", "C_{#rho(1720)}", "C_{#omega(1650)}", "C_{#phi(1680)}");
+        fcs_c->SetParameters(1.123, 1.027, 1.101, -0.1, -0.1, 0.1, -0.1, 0.1, -0.1);
         return fcs_c;
     }
     

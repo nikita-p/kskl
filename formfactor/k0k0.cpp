@@ -87,8 +87,8 @@ TGraphAsymmErrors* getGraph(bool vis){
     TTree* t17 = (TTree*)f17->Get("t");
     
     int n_koz = 0;
-    if(vis==false)
-        n_koz = 25; //cross section from e kozyrev article
+    //if(vis==false)
+    //    n_koz = 25; //cross section from e kozyrev article
     int n11 = t11->GetEntries();
     int n12 = t12->GetEntries();
     int n17 = t17->GetEntries();
@@ -112,12 +112,12 @@ TGraphAsymmErrors* getGraph(bool vis){
     f11->Close();
     f12->Close();
     f17->Close();
-    
+    /*
     for(int i=n_koz; i<n; i++){
         cs0[i] *= rc[i]/radcor(e0[i]);
         cs1[i] *= rc[i]/radcor(e0[i]);
         cs2[i] *= rc[i]/radcor(e0[i]); 
-    }
+    }*/
     
     TGraphAsymmErrors* gr = new TGraphAsymmErrors(n, &e0[0], &cs0[0], &e2[0], &e1[0], &cs2[0], &cs1[0]);
     /*
@@ -132,6 +132,23 @@ TGraphAsymmErrors* getGraph(bool vis){
     
     return gr;
 }
+
+TGraphAsymmErrors* getK0K0Phi(){
+    const int n = 25;
+    
+    
+    double cs0[n];
+    double cs1[n];
+    double cs2[n];
+    double e0[n];
+    double e1[n];
+    double e2[n];
+    
+    read_dat("k0k0_koz.dat", n, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0]);
+    TGraphAsymmErrors *g = new TGraphAsymmErrors(n, &e0[0], &cs0[0], &e2[0], &e1[0], &cs2[0], &cs1[0]);
+    return g;
+}
+
 
 void writeToFile(TF1* f){
     int n = 2000;
