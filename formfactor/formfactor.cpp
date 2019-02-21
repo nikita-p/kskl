@@ -25,15 +25,21 @@ class MDVM{
     //бета
     static double PV2(double s, double M, double Mn); 
     //PV2: фазовый объём (почти: он типа нормирован) распада на 2 одинаковые частицы, s: энергия**2, M: масса векторного мезона, W0: ширина распада,  Mn: масса частицы в распаде
-    static double PV3(double s, double m1, double m2, double m3);
-    //PV3: фазовый объём распада на 3 частицы
+    static double PV3(double s, double M, double m1, double m2, double m3);
+    //PV3: фазовый объём (почти: он типа нормирован) распада на 3 частицы
+    static double PVG(double s, double M, double Mn);
+    //PVG: распад частицы M на фотон и частицу Mn
+    
+    
+    static double WOmg(double s, double W0, double MX);
+    static double WPhi(double s, double W0, double MX);
     
     static double WRhoX(double s, double W0, double MX){
         return W0 * PV2(s, MX, m_pi);    }
     static double WOmgX(double s, double W0, double MX){
-        return W0 * PV3(s,m_pi,m_pi,m_pi0) / PV3(MX*MX,m_pi,m_pi,m_pi0); }
+        return W0 * PV3(s,MX,m_pi,m_pi,m_pi0);}// / PV3(MX*MX,m_pi,m_pi,m_pi0); }
     static double WPhiX(double s, double W0, double MX){
-        return W0 * PV2(s, MX, m_k0);  }
+        return W0 * PV2(s, MX, 493.6) ;  }
     
     
     static TComplex BW(double, double, double, double(*WX)(double, double, double));
@@ -41,9 +47,9 @@ class MDVM{
     static TComplex BW_Rho(double s){
         return BW(s, m_rho, w0_rho, WRhoX); }
     static TComplex BW_Omg(double s){
-        return BW(s, m_omg, w0_omg, WOmgX); }
+        return BW(s, m_omg, w0_omg, WOmg); }
     static TComplex BW_Phi(double s){
-        return BW(s, m_phi, w0_phi, WPhiX); }
+        return BW(s, m_phi, w0_phi, WPhi); }
         
     static TComplex BW_Rho1(double s){
         return BW(s, 1465, 400, WRhoX); }
@@ -113,9 +119,37 @@ const double MDVM::w0_omg = 8.49;
         return w;
     }
     
-    double MDVM::PV3(double s, double m1, double m2, double m3){
+    double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
         double pv = (pow(TMath::Pi(),3)/2.)*( pow(m1*m2*m3,1/2.)*pow(sqrt(s) - m1 - m2 - m3,2)/pow(m1 + m2 + m3,3/2.) );
-        return pv;
+        double pv0 = (pow(TMath::Pi(),3)/2.)*( pow(m1*m2*m3,1/2.)*pow(sqrt(MX*MX) - m1 - m2 - m3,2)/pow(m1 + m2 + m3,3/2.) );
+        return pv/pv0;
+    }
+    
+    double MDVM::PVG(double s, double MX, double Mn){
+        double pv  = pow( (    s - Mn*Mn)/(2*sqrt(s)), 3 );
+        double pv0 = pow( (MX*MX - Mn*Mn)/(2*sqrt(MX*MX)), 3 );
+        return pv/pv0;
+    }
+    
+    double MDVM::WPhi(double s, double W0, double MX){
+        double Br_KC = 0.492;
+        double Br_KN = 0.34;
+        double Br_3Pi = 0.1524;
+        double Br_EG = 0.01303;
+        
+        double m_eta = 547.862; 
+        
+        double W = W0 * ( Br_KC*PV2(s, MX, 493.6) + Br_KN*PV2(s, MX, 493.6) + Br_3Pi*PV3(s, MX, m_pi,m_pi,m_pi0) + Br_EG*PVG(s, MX, m_eta) );
+        return W;
+    }
+    
+    double MDVM::WOmg(double s, double W0, double MX){
+        double Br_3Pi = 0.892;
+        double Br_Pi0G = 0.084;
+        double Br_2Pi = 0.0153;
+        
+        double W = W0 * ( Br_3Pi*PV3(s, MX, m_pi, m_pi, m_pi0) + Br_Pi0G*PVG(s, MX, m_pi0) + Br_2Pi*PV2(s, MX, m_pi) );
+        return W;
     }
 
     TComplex MDVM::BW(double s, double MX, double WX0, double(*WX)(double, double, double)){
@@ -125,7 +159,7 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TComplex MDVM::F0(double* x, double* par, bool mode){
-        double n = 1.005;//1.027;
+        double n = 1.026;//1.027;
         double s = TMath::Power(x[0]*1E3, 2);
         double CR = par[0];
         double CO = par[1];
@@ -141,33 +175,26 @@ const double MDVM::w0_omg = 8.49;
     
     TComplex MDVM::F1(double* x, double* par, bool mode){
         double s = TMath::Power(x[0]*1E3, 2);
-        double n = 1.027;
-        double CR = par[3];
-        double CR2 = par[5];
-        double CR3 = par[6];
-        //double CR4 = par[7];
-        double CR5 = 1 - par[0] - par[3] - par[5] - par[6];// - par[7];
-        double CO = par[4];
-        double CO2 = par[7];//1 - par[1] - par[4];
-        double CO3 = 1 - par[1] - par[4] - par[7];
-        double CP = par[8];//1 - par[2];
-        double CP2 = 1 - par[2] - par[8];
         
-        double KR = mode ? CR/2. : -CR/2.;
-        double KR2 = mode ? CR2/2. : -CR2/2.;
-        double KR3 = mode ? CR3/2. : -CR3/2.;
-        //double KR4 = mode ? CR4/2. : -CR4/2.;
-        double KR5 = mode ? CR5/2. : -CR5/2.;
-        double KO = CO/6.;
-        double KO2 = CO2/6.;
-        double KP = mode ? CP/3. : n*CP/3.;
-        double KP2 = mode ? CP2/3. : n*CP2/3.;
-        double KO3 = CO3/6.;
+        const int nr = 4;
+        double CR[nr] = { par[0], par[3], par[6], 1-par[0]-par[3]-par[6] };
+        double CO[nr] = { par[1], par[4], par[7], 1-par[1]-par[4]-par[7] };
+        double CP[nr] = { par[2], par[5], 1-par[2]-par[5], 0 };
         
-        TComplex F1 = F0(x, par, mode) + KR*BW_Rho1(s) + KO*BW_Omg1(s) + KP*BW_Phi1(s) + KR2*BW_Rho2(s) + KR3*BW_Rho3(s) + /*KR4*BW_Rho4(s) +*/ (KR5+KO3)*BW_Rho5(s) + KO2*BW_Omg2(s) + KP2*BW_Phi2(s);
+        double KR[nr], KO[nr], KP[nr];
+        for(int i=0; i<nr; i++){
+            KR[i] = mode ? CR[i]/2. : -CR[i]/2.;
+            KO[i] = CO[i]/6.;
+            KP[i] = CP[i]/3.; //здесь уже нет дополнительного параметра n, как в F0 (в соотв. с моделью)
+        }
+        
+        TComplex F1 = F0(x, par, mode);
+        F1 += KR[1]*BW_Rho1(s) + KR[2]*BW_Rho2(s) + KR[3]*BW_Rho5(s);
+        F1 += KO[1]*BW_Omg1(s) + KO[2]*BW_Omg2(s) + KO[3]*BW_Rho5(s);
+        F1 += KP[1]*BW_Phi1(s) + KP[2]*BW_Phi2(s);
+        
         return F1;
     }
-
     double MDVM::Cross_Section(double* x, double* par, bool mode){
         double s = TMath::Power(x[0]*1E3, 2);
         if(x[0]<0.4976*2)
@@ -178,10 +205,10 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TF1* MDVM::Cross_Section(bool mode){
-        const int Npars = 9;
+        const int Npars = 8;
         TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
-        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#rho(1570)}", "C_{#rho(1720)}", "C_{#omega(1650)}", "C_{#phi(1680)}");
-        fcs_c->SetParameters(1.123, 1.027, 1.101, -0.1, -0.1, 0.1, -0.1, 0.1, -0.1);
+        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}");
+        fcs_c->SetParameters(1.123, 1.027, 1.101, -0.1, -0.1, 0.1, -0.1, 0.1);
         return fcs_c;
     }
     

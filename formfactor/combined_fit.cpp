@@ -17,18 +17,19 @@ const int n0 = 10;
 int ipar[n0] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9 };
 
 struct GlobalChi2 {
-   const  ROOT::Math::IMultiGenFunction *fChi2_1;
-   const  ROOT::Math::IMultiGenFunction *fChi2_2;
-   const  ROOT::Math::IMultiGenFunction *fChi2_3;
+   const  ROOT::Math::IMultiGenFunction *f0;
+   const  ROOT::Math::IMultiGenFunction *f1;
+   const  ROOT::Math::IMultiGenFunction *f2;
 
-   GlobalChi2(  ROOT::Math::IMultiGenFunction & f1, ROOT::Math::IMultiGenFunction & f2, ROOT::Math::IMultiGenFunction & f3) : 
-                                         fChi2_1(&f1), fChi2_2(&f2), fChi2_3(&f3) {}
+   GlobalChi2(  ROOT::Math::IMultiGenFunction &ch0, ROOT::Math::IMultiGenFunction &ch1, ROOT::Math::IMultiGenFunction &ch2) : 
+                                         f0(&ch0), f1(&ch1), f2(&ch2) {}
 
    double operator() (const double *par) const {
       double p[n0];
       for (int i = 0; i < n0; ++i) 
           p[i] = par[ ipar[i] ];
-      return (*fChi2_1)(p) + (*fChi2_2)(p) + (*fChi2_3)(p);
+      //std::cout << (*ch0)(p) << std::endl; 
+      return (*f0)(p) + (*f1)(p) + (*f2)(p);
    }
 };
 
@@ -46,7 +47,7 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   ROOT::Math::WrappedMultiTF1 wf0(*f0,1);
   ROOT::Math::WrappedMultiTF1 wf1(*f1,1);
   ROOT::Math::WrappedMultiTF1 wf2(*f2,1);
-
+  
   ROOT::Fit::DataOptions opt;
   
   ROOT::Fit::DataRange range0;
@@ -54,8 +55,8 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   ROOT::Fit::DataRange range2;
   
   // set the data range
-  range0.SetRange(1.043, end);
-  range1.SetRange(1.1, end);
+  range0.SetRange(1.01, end);
+  range1.SetRange(1.05, end);
   range2.SetRange(1.0, 1.1);
   
   ROOT::Fit::BinData data0(opt,range0);
@@ -65,8 +66,8 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   ROOT::Fit::FillData(data0, h0);
   ROOT::Fit::FillData(data1, h1);
   ROOT::Fit::FillData(data2, h2);
-
-
+  
+  
   ROOT::Fit::Chi2Function ch0(data0, wf0);
   ROOT::Fit::Chi2Function ch1(data1, wf1);
   ROOT::Fit::Chi2Function ch2(data2, wf2);
@@ -80,7 +81,7 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   
   
   // create before the parameter settings in order to fix or set range on them
-  fitter.Config().SetParamsSettings(n0,par0);
+  fitter.Config().SetParamsSettings(n0, par0);
   
   /*
   fitter.Config().ParSettings(0).Fix();
@@ -92,12 +93,12 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
 
   // fit FCN function directly
   int size = data0.Size() + data1.Size() + data2.Size();
-  fitter.FitFCN(n0, chi2, 0, size, true);
+  //fitter.FitFCN(n0, chi2, 0, size, true);
+  fitter.FitFCN(n0, chi2, &par0[0], size);
   ROOT::Fit::FitResult result = fitter.Result();
   result.Print(std::cout);
 
-  TCanvas * c1 = new TCanvas("Simfit","Simultaneous fit of two histograms",
-                             10,10,900,900);
+  TCanvas * c1 = new TCanvas("Simfit","Simultaneous fit of three histograms", 10, 10, 900, 900);
 
   c1->Divide(1,3);
   for(int i=1; i<=3; i++){
@@ -130,6 +131,9 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   h2->GetListOfFunctions()->Add(f2);
   h2->Draw("ap");
   
+  cout << (ch0)(result.GetParams()) << endl;
+  cout << (ch1)(result.GetParams()) << endl;
+  cout << (ch2)(result.GetParams()) << endl;
   return result;
 }
 

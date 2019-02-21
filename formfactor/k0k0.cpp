@@ -86,14 +86,11 @@ TGraphAsymmErrors* getGraph(bool vis){
     TTree* t12 = (TTree*)f12->Get("t");
     TTree* t17 = (TTree*)f17->Get("t");
     
-    int n_koz = 0;
-    //if(vis==false)
-    //    n_koz = 25; //cross section from e kozyrev article
     int n11 = t11->GetEntries();
     int n12 = t12->GetEntries();
     int n17 = t17->GetEntries();
     
-    const int n = n_koz + n11 + n12 + n17;
+    const int n = n11 + n12 + n17;
     
     double cs0[n];
     double cs1[n];
@@ -103,11 +100,9 @@ TGraphAsymmErrors* getGraph(bool vis){
     double e2[n];
     double rc[n];
     
-    if(vis==false)
-        read_dat("k0k0_koz.dat", n_koz, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0]);
-    reader(t11, n_koz, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
-    reader(t12, n_koz + n11, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
-    reader(t17, n_koz + n11 + n12, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
+    reader(t11, 0, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
+    reader(t12, n11, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
+    reader(t17, n11 + n12, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
     
     f11->Close();
     f12->Close();
