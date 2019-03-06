@@ -101,7 +101,7 @@ const double MDVM::m_pi  = 139.57;
 const double MDVM::m_pi0 = 135.;
 
 const double MDVM::w0_phi = 4.247;//9;
-const double MDVM::w0_rho = 149.1;
+const double MDVM::w0_rho = 147.8;
 const double MDVM::w0_omg = 8.49;
 
 /*__________________________________________________________*/
@@ -159,7 +159,7 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TComplex MDVM::F0(double* x, double* par, bool mode){
-        double n = 1.026;//1.027;
+        double n = 1.026;//1.026;//1.027;
         double s = TMath::Power(x[0]*1E3, 2);
         double CR = par[0];
         double CO = par[1];
@@ -208,7 +208,7 @@ const double MDVM::w0_omg = 8.49;
         const int Npars = 8;
         TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
         fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}");
-        fcs_c->SetParameters(1.123, 1.027, 1.101, -0.1, -0.1, 0.1, -0.1, 0.1);
+        fcs_c->SetParameters(1.19, 1.42, 1, -0.092, -0.04, -0.114, -0.032, -0.105);
         return fcs_c;
     }
     

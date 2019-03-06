@@ -7,133 +7,104 @@
 #include "HFitInterface.h"
 #include "TCanvas.h"
 #include "TStyle.h"
+#include <iostream>
 
 #include "formfactor.cpp"
 #include "k+k-.cpp"
 #include "k0k0.cpp"
 
+
+using namespace std;
+
 // definition of shared parameter charged mode
+const int N = 4;
 const int n0 = 10;
 int ipar[n0] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9 };
 
 struct GlobalChi2 {
-   const  ROOT::Math::IMultiGenFunction *f0;
-   const  ROOT::Math::IMultiGenFunction *f1;
-   const  ROOT::Math::IMultiGenFunction *f2;
+   vector<ROOT::Fit::Chi2Function*> f;
 
-   GlobalChi2(  ROOT::Math::IMultiGenFunction &ch0, ROOT::Math::IMultiGenFunction &ch1, ROOT::Math::IMultiGenFunction &ch2) : 
-                                         f0(&ch0), f1(&ch1), f2(&ch2) {}
+   GlobalChi2(vector<ROOT::Fit::Chi2Function*> ch){
+    f.reserve(N);
+        for(int i=0; i<N; i++)
+            f[i] = ch[i];
+   }
 
    double operator() (const double *par) const {
       double p[n0];
       for (int i = 0; i < n0; ++i) 
           p[i] = par[ ipar[i] ];
-      //std::cout << (*ch0)(p) << std::endl; 
-      return (*f0)(p) + (*f1)(p) + (*f2)(p);
+      return (*f[0])(p) + (*f[1])(p) + (*f[2])(p);// + (*f[3])(p);
    }
 };
 
 ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ), до которой будет производиться фит
 
-  TGraphAsymmErrors* h0 = fileKK();
-  TGraphAsymmErrors* h1 = getGraph(0);
-  TGraphAsymmErrors* h2 = getK0K0Phi();
-
-  TF1* f0 = MDVM::Cross_Section(1);
-  TF1* f1 = MDVM::Cross_Section(0);
-  TF1* f2 = MDVM::Cross_Section(0);
-
-  // perform now global fit
-  ROOT::Math::WrappedMultiTF1 wf0(*f0,1);
-  ROOT::Math::WrappedMultiTF1 wf1(*f1,1);
-  ROOT::Math::WrappedMultiTF1 wf2(*f2,1);
+  TGraphAsymmErrors* h[N] = {fileKK(), getGraph(0), getK0K0Phi(), fileKKPeak()};
+  TF1* f[N] = {MDVM::Cross_Section(1), MDVM::Cross_Section(0), MDVM::Cross_Section(0), MDVM::Cross_Section(1)};
   
+  vector<ROOT::Math::WrappedMultiTF1*> wf(N);
+  vector<ROOT::Fit::DataRange> range(N);
+  vector<ROOT::Fit::BinData*> data(N);
+  vector<ROOT::Fit::Chi2Function*> chi(N);
   ROOT::Fit::DataOptions opt;
   
-  ROOT::Fit::DataRange range0;
-  ROOT::Fit::DataRange range1;
-  ROOT::Fit::DataRange range2;
-  
   // set the data range
-  range0.SetRange(1.01, end);
-  range1.SetRange(1.05, end);
-  range2.SetRange(1.0, 1.1);
+  range[0].SetRange(1.01, end+0.03);
+  range[1].SetRange(1.05, end);
+  range[2].SetRange(1.0, 1.1);
+  range[3].SetRange(1.0, 1.1);
   
-  ROOT::Fit::BinData data0(opt,range0);
-  ROOT::Fit::BinData data1(opt,range1);
-  ROOT::Fit::BinData data2(opt,range2);
+  for(int i=0; i<N; i++){
+    wf[i] = new ROOT::Math::WrappedMultiTF1(*f[i], 1);
+    data[i] = new ROOT::Fit::BinData(opt, range[i]);
+    chi[i] = new ROOT::Fit::Chi2Function(*data[i], *wf[i]);
+    
+    ROOT::Fit::FillData(*data[i], h[i]);
+  }
   
-  ROOT::Fit::FillData(data0, h0);
-  ROOT::Fit::FillData(data1, h1);
-  ROOT::Fit::FillData(data2, h2);
-  
-  
-  ROOT::Fit::Chi2Function ch0(data0, wf0);
-  ROOT::Fit::Chi2Function ch1(data1, wf1);
-  ROOT::Fit::Chi2Function ch2(data2, wf2);
-
-  GlobalChi2 chi2(ch0, ch1, ch2);
-
+  GlobalChi2 chi2(chi);
   ROOT::Fit::Fitter fitter;
 
-  //double par0[Npar] = { 1.139, 1.467, .999, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-  double par0[n0] = { 1.067, 1.28, 1.038, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-  
+  double par0[n0] = { 1.067, 1.28, 1.038, -0.025, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   
   // create before the parameter settings in order to fix or set range on them
   fitter.Config().SetParamsSettings(n0, par0);
-  
-  /*
-  fitter.Config().ParSettings(0).Fix();
-  fitter.Config().ParSettings(1).SetLimits(-0.5, -1.E-5);
-  fitter.Config().ParSettings(0).SetStepSize(5);*/
-
   fitter.Config().MinimizerOptions().SetPrintLevel(0);
   fitter.Config().SetMinimizer("Minuit2","Migrad");
 
   // fit FCN function directly
-  int size = data0.Size() + data1.Size() + data2.Size();
-  //fitter.FitFCN(n0, chi2, 0, size, true);
+  int size = 0;
+  for(int i=0; i<N; i++)
+    size += data[i]->Size();
+    
   fitter.FitFCN(n0, chi2, &par0[0], size);
   ROOT::Fit::FitResult result = fitter.Result();
   result.Print(std::cout);
 
-  TCanvas * c1 = new TCanvas("Simfit","Simultaneous fit of three histograms", 10, 10, 900, 900);
+  TCanvas * c1 = new TCanvas("Simfit","Simultaneous fit of 4 histograms", 10, 10, 1400, 900);
 
-  c1->Divide(1,3);
-  for(int i=1; i<=3; i++){
+  c1->Divide(2,2);
+  
+  for(int i=1; i<=4; i++){
     c1->cd(i)->SetGrid();
     c1->cd(i)->SetLogy();
   }
   gStyle->SetOptFit(1111);
-
-  c1->cd(1);
-  f0->SetFitResult( result, ipar);
-  f0->SetRange(range0().first, range0().second);
-  f0->SetLineColor(kBlue);
-  h0->SetTitle("Charged kaons");
-  h0->GetListOfFunctions()->Add(f0);
-  h0->Draw("ap");
-
-  c1->cd(2);
-  f1->SetFitResult( result, ipar);
-  f1->SetRange(range1().first, range1().second);
-  f1->SetLineColor(kRed);
-  h1->SetTitle("Neutral kaons");
-  h1->GetListOfFunctions()->Add(f1);
-  h1->Draw("ap");
   
-  c1->cd(3);
-  f2->SetFitResult( result, ipar);
-  f2->SetRange(range2().first, range2().second);
-  f2->SetLineColor(kGreen);
-  h2->SetTitle("Neutral kaons. Peak");
-  h2->GetListOfFunctions()->Add(f2);
-  h2->Draw("ap");
+  vector<string> titles = {"Charged Kaons", "Neutral Kaons", "Neutral Kaons. Peak", "Charged Kaons. Peak"};
   
-  cout << (ch0)(result.GetParams()) << endl;
-  cout << (ch1)(result.GetParams()) << endl;
-  cout << (ch2)(result.GetParams()) << endl;
+  for(int i=0; i<N; i++){
+      c1->cd(i+1);
+      f[i]->SetFitResult( result, ipar);
+      f[i]->SetRange(range[i]().first, range[i]().second);
+      f[i]->SetLineColor(kBlue);
+      h[i]->SetTitle(titles[i].c_str());
+      h[i]->GetListOfFunctions()->Add(f[i]);
+      h[i]->Draw("ap");
+      cout << (*chi[i])(result.GetParams()) << endl;
+  }
+  
   return result;
 }
 
@@ -165,7 +136,6 @@ void checker(){
     gr->Draw();
     go->Draw("same");
     gp->Draw("same");
-    
     return;
 }
 
