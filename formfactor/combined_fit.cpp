@@ -34,7 +34,7 @@ struct GlobalChi2 {
       double p[n0];
       for (int i = 0; i < n0; ++i) 
           p[i] = par[ ipar[i] ];
-      return (*f[0])(p) + (*f[1])(p) + (*f[2])(p);// + (*f[3])(p);
+      return (*f[0])(p) + (*f[1])(p) + (*f[2])(p) + (*f[3])(p);
    }
 };
 
@@ -66,7 +66,7 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   GlobalChi2 chi2(chi);
   ROOT::Fit::Fitter fitter;
 
-  double par0[n0] = { 1.067, 1.28, 1.038, -0.025, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  double par0[n0] = { 1.067, 1.28, 1.538, -0.025, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   
   // create before the parameter settings in order to fix or set range on them
   fitter.Config().SetParamsSettings(n0, par0);

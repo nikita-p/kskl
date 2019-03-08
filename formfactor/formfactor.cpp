@@ -15,13 +15,14 @@ class MDVM{
     
     static const double m_k0;
     static const double m_pi;
+    static const double m_kc;
     static const double m_pi0;
     
     static const double w0_phi;
     static const double w0_rho;
     static const double w0_omg;
     
-    static double BETA(double s);
+    static double BETA(double s, double M_K);
     //бета
     static double PV2(double s, double M, double Mn); 
     //PV2: фазовый объём (почти: он типа нормирован) распада на 2 одинаковые частицы, s: энергия**2, M: масса векторного мезона, W0: ширина распада,  Mn: масса частицы в распаде
@@ -32,14 +33,13 @@ class MDVM{
     
     
     static double WOmg(double s, double W0, double MX);
-    static double WPhi(double s, double W0, double MX);
     
     static double WRhoX(double s, double W0, double MX){
         return W0 * PV2(s, MX, m_pi);    }
     static double WOmgX(double s, double W0, double MX){
         return W0 * PV3(s,MX,m_pi,m_pi,m_pi0);}// / PV3(MX*MX,m_pi,m_pi,m_pi0); }
     static double WPhiX(double s, double W0, double MX){
-        return W0 * PV2(s, MX, 493.6) ;  }
+        return W0 * PV2(s, MX, m_kc) ;  }
     
     
     static TComplex BW(double, double, double, double(*WX)(double, double, double));
@@ -72,6 +72,7 @@ class MDVM{
     
 public:
     
+    static double WPhi(double s, double W0, double MX);
     static TComplex F0(double* x, double* par, bool mode);
     //формфактор, нулевое приближение
     //mode: 0 - short/long; 1 - charged;
@@ -97,6 +98,7 @@ const double MDVM::m_omg = 782.65;
 const double MDVM::m_phi = 1019.464;//1;
 
 const double MDVM::m_k0  = 497.6;
+const double MDVM::m_kc  = 493.677;
 const double MDVM::m_pi  = 139.57;
 const double MDVM::m_pi0 = 135.;
 
@@ -106,16 +108,18 @@ const double MDVM::w0_omg = 8.49;
 
 /*__________________________________________________________*/
 
-    double MDVM::BETA(double s){ //бета
+    double MDVM::BETA(double s, double M_K){ //бета
         double E = TMath::Sqrt(s)/2.;
-        double P = TMath::Sqrt(E*E - m_k0*m_k0);
+        double P = TMath::Sqrt(E*E - M_K*M_K);
         return P/E;
     }
 
     double MDVM::PV2(double s, double M, double Mn){
         if(s/4. < Mn*Mn )
             return 0;
+        double E = sqrt(s)/2;
         double w = (M*M/s)*pow((s/4. - Mn*Mn)/((M*M)/4. - Mn*Mn),3/2.);
+        
         return w;
     }
     
@@ -124,6 +128,11 @@ const double MDVM::w0_omg = 8.49;
         double pv0 = (pow(TMath::Pi(),3)/2.)*( pow(m1*m2*m3,1/2.)*pow(sqrt(MX*MX) - m1 - m2 - m3,2)/pow(m1 + m2 + m3,3/2.) );
         return pv/pv0;
     }
+    /*
+    double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
+        double pv = FAS_ASPO(sqrt(s));
+        return pv/FAS_ASPO(MX);
+    }*/
     
     double MDVM::PVG(double s, double MX, double Mn){
         double pv  = pow( (    s - Mn*Mn)/(2*sqrt(s)), 3 );
@@ -136,10 +145,11 @@ const double MDVM::w0_omg = 8.49;
         double Br_KN = 0.34;
         double Br_3Pi = 0.1524;
         double Br_EG = 0.01303;
+        double ost = 1 - Br_KC - Br_KN - Br_3Pi - Br_EG;
         
         double m_eta = 547.862; 
         
-        double W = W0 * ( Br_KC*PV2(s, MX, 493.6) + Br_KN*PV2(s, MX, 493.6) + Br_3Pi*PV3(s, MX, m_pi,m_pi,m_pi0) + Br_EG*PVG(s, MX, m_eta) );
+        double W = W0 * ( (Br_KC+ost)*PV2(s, MX, m_kc) + Br_KN*PV2(s, MX, m_k0) + Br_3Pi*PV3(s, MX, m_pi,m_pi,m_pi0) + Br_EG*PVG(s, MX, m_eta) );
         return W;
     }
     
@@ -147,8 +157,9 @@ const double MDVM::w0_omg = 8.49;
         double Br_3Pi = 0.892;
         double Br_Pi0G = 0.084;
         double Br_2Pi = 0.0153;
+        double ost = 1 - Br_Pi0G - Br_2Pi;
         
-        double W = W0 * ( Br_3Pi*PV3(s, MX, m_pi, m_pi, m_pi0) + Br_Pi0G*PVG(s, MX, m_pi0) + Br_2Pi*PV2(s, MX, m_pi) );
+        double W = W0 * ( (Br_3Pi+ost)*PV3(s, MX, m_pi, m_pi, m_pi0) + Br_Pi0G*PVG(s, MX, m_pi0) + Br_2Pi*PV2(s, MX, m_pi) );
         return W;
     }
 
@@ -159,7 +170,7 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TComplex MDVM::F0(double* x, double* par, bool mode){
-        double n = 1.026;//1.026;//1.027;
+        double n = par[8];//1.026;//1.027;
         double s = TMath::Power(x[0]*1E3, 2);
         double CR = par[0];
         double CO = par[1];
@@ -200,12 +211,13 @@ const double MDVM::w0_omg = 8.49;
         if(x[0]<0.4976*2)
             return 0;
         double fabs = TComplex::Abs( F1(x, par, mode) );
-        double cs = (TMath::Pi()/3.)*TMath::Power(ALPHA,2)*C*TMath::Power(BETA(s),3)*TMath::Power(fabs,2)/s;
+        double M_K = mode ? m_kc : m_k0 ;
+        double cs = (TMath::Pi()/3.)*TMath::Power(ALPHA,2)*C*TMath::Power(BETA(s, M_K),3)*TMath::Power(fabs,2)/s;
         return cs;
     }
    
     TF1* MDVM::Cross_Section(bool mode){
-        const int Npars = 8;
+        const int Npars = 9;
         TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
         fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}");
         fcs_c->SetParameters(1.19, 1.42, 1, -0.092, -0.04, -0.114, -0.032, -0.105);
