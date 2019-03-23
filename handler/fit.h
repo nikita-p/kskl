@@ -41,11 +41,12 @@ public:
     
     HandleTree(string path, string treeName, std::vector<double> lum){   //path - путь до файла с деревом, treeName - имя дерева в рут файле
         std::cout << path.substr( path.find_last_of('/') + 2, path.length() - 5) << std::endl;
-        energies.insert( energies.end(), atof(path.substr( path.find_last_of('/') + 2, path.length() - 5).c_str()) );
+        //energies.insert( energies.end(), atof(path.substr( path.find_last_of('/') + 2, path.length() - 5).c_str()) );
         std::vector<double> zeros = {0,0,0};
         lums.insert( lums.end(), lum[0]>0 ? lum : zeros  );
         chain = new TChain(treeName.c_str());
         chain->Add(path.c_str());
+        energies.insert( energies.end(), chain->GetMaximum("be") ); //be одинаковые, поэтому можно брать хоть min, хоть max
     }
     
     int* getTriggers(); //необходимо, чтоб в дереве переменная триггера называлась t и имела значение 0 - TF, 1 - CF, 2 - TF&CF

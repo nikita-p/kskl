@@ -69,7 +69,8 @@ double* HandleTree::getRegistrationEfficiency(){ //YES
 
 void HandleTree::Merge(string inPath, vector<double> lum){ //YES
     chain->Add(inPath.c_str());
-    energies.insert(energies.end(), atof(inPath.substr( inPath.find_last_of('/') + 2, inPath.length() - 5).c_str()) );
+    //energies.insert(energies.end(), atof(inPath.substr( inPath.find_last_of('/') + 2, inPath.length() - 5).c_str()) );
+    energies.insert(energies.end(), chain->GetMaximum("be") );
     vector<double> zeros = {0,0,0};
     lums.insert(lums.end(), lum[0]>0 ? lum : zeros);
     delete fitF; // удалить старые значения полей, т.к. информация становится устаревшей

@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iostream>
 
 void reader(TTree* t, int n0, double* cs0, double* cs1, double* cs2, double* e0, double* e1, double* e2, double* rc, bool vis){
     
@@ -6,6 +7,7 @@ void reader(TTree* t, int n0, double* cs0, double* cs1, double* cs2, double* e0,
     TTreeReaderArray<double> CS(theReader, "cs");
     TTreeReaderArray<double> E(theReader, "E");
     TTreeReaderValue<double> RC(theReader, "radcor");
+    
 
     int i = n0;
     while(theReader.Next()){
@@ -68,7 +70,6 @@ double radcor(double e){
         RClast = RC;
         r >> E >> RC;
         if(E>e && Elast<=e){
-            //cout << "FFF\t" << RClast << '\t' << RC << endl;
             return RClast + (RC - RClast)*(e - Elast)/(E - Elast);
         }
     }
@@ -92,7 +93,7 @@ TGraphAsymmErrors* getGraph(bool vis){
     
     const int n = n11 + n12 + n17;
     
-    double cs0[n];
+    double cs0[n];    
     double cs1[n];
     double cs2[n];
     double e0[n];
@@ -104,27 +105,20 @@ TGraphAsymmErrors* getGraph(bool vis){
     reader(t12, n11, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
     reader(t17, n11 + n12, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], vis);
     
+    double factor;
+    for(int i=0; i<n; i++){
+            factor = ( rc[i] /radcor(e0[i]) );
+            factor = 1;
+            cs0[i] *= factor;     
+            cs1[i] *= factor;        
+            cs2[i] *= factor;
+    }
+    
+    
     f11->Close();
     f12->Close();
     f17->Close();
-    /*
-    for(int i=n_koz; i<n; i++){
-        cs0[i] *= rc[i]/radcor(e0[i]);
-        cs1[i] *= rc[i]/radcor(e0[i]);
-        cs2[i] *= rc[i]/radcor(e0[i]); 
-    }*/
-    
     TGraphAsymmErrors* gr = new TGraphAsymmErrors(n, &e0[0], &cs0[0], &e2[0], &e1[0], &cs2[0], &cs1[0]);
-    /*
-    TCanvas* c = new TCanvas("can", "CrossSection", 800, 500);
-    gr->Draw("ap");
-    c->SetLogy();
-    c->SetGrid();
-    gStyle->SetOptFit(11111);
-    gr->SetTitle("");
-    gr->GetXaxis()->SetTitle("#sqrt{s}, GeV");
-    gr->GetYaxis()->SetTitle("#sigma, nb");*/
-    
     return gr;
 }
 

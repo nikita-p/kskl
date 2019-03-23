@@ -20,12 +20,6 @@ TGraphAsymmErrors* fileKK(){
     o.close();
         
     TGraphAsymmErrors* g = new TGraphAsymmErrors(n, &e[0], &s[0][0], 0, 0, &s[1][0], &s[1][0]);
-    /*
-    TCanvas* c = new TCanvas("cankk", "canvaskk", 900, 600); 
-    g->Draw("ap");
-    c->SetGrid();
-    c->SetLogy();*/
-    //e[2] = ; s[0][2] = ; s[1][2] = ;
     return g;
 }
 
@@ -46,11 +40,24 @@ TGraphAsymmErrors* fileKKPeak(){
     o.close();
         
     TGraphAsymmErrors* g = new TGraphAsymmErrors(n, &e[0][0], &s[0][0], &e[1][0], &e[1][0], &s[1][0], &s[1][0]);
-    /*
-    TCanvas* c = new TCanvas("cankk", "canvaskk", 900, 600); 
-    g->Draw("ap");
-    c->SetGrid();
-    c->SetLogy();*/
-    //e[2] = ; s[0][2] = ; s[1][2] = ;
+    return g;
+}
+
+TGraphAsymmErrors* filePiFormfactor(){
+    const int n = 60;
+    double e[n];
+    double s[3][n];
+    
+    ifstream o( "pi+pi-_formfactor.dat" );
+    
+    int k;
+    for( int i=0; i<n; i++){
+        o >> e[i] >> s[0][i] >> s[1][i] >> s[2][i];
+        s[2][i] *= -1; //в этом файле отрицательные нижние ошибки
+        e[i] *= 1.E-3;
+    }
+    o.close();
+    
+    TGraphAsymmErrors* g = new TGraphAsymmErrors(n, &e[0], &s[0][0], 0, 0, &s[1][0], &s[2][0]);
     return g;
 }

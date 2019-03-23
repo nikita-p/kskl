@@ -37,7 +37,7 @@ class MDVM{
     static double WRhoX(double s, double W0, double MX){
         return W0 * PV2(s, MX, m_pi);    }
     static double WOmgX(double s, double W0, double MX){
-        return W0 * PV3(s,MX,m_pi,m_pi,m_pi0);}// / PV3(MX*MX,m_pi,m_pi,m_pi0); }
+        return W0 * PV3(s,MX,m_pi,m_pi,m_pi0);}
     static double WPhiX(double s, double W0, double MX){
         return W0 * PV2(s, MX, m_kc) ;  }
     
@@ -51,24 +51,24 @@ class MDVM{
     static TComplex BW_Phi(double s){
         return BW(s, m_phi, w0_phi, WPhi); }
         
-    static TComplex BW_Rho1(double s){
-        return BW(s, 1465, 400, WRhoX); }
+    static TComplex BW_Rho1(double s){ // 1465, 25; 400, 60;
+        return BW(s, 1490, 340, WRhoX); }
     static TComplex BW_Omg1(double s){
-        return BW(s, 1420, 200, WOmgX); }
+        return BW(s, 1420, 220, WOmgX); }
     static TComplex BW_Rho2(double s){
-        return BW(s, 1570, 144, WRhoX); }
+        return BW(s, 1574, 234, WRhoX); }
     static TComplex BW_Omg2(double s){
-        return BW(s, 1650, 315, WOmgX); }
+        return BW(s, 1688, 350, WOmgX); }
     static TComplex BW_Phi1(double s){
-        return BW(s, 1680, 150, WPhiX); }
-    static TComplex BW_Rho3(double s){
+        return BW(s, 1673, 182, WPhiX); }
+    static TComplex BW_Rho3(double s){ //unused
         return BW(s, 1720, 250, WRhoX); }
-    static TComplex BW_Rho4(double s){ //из pdg видно, что это какая-то хренотень
+    static TComplex BW_Rho4(double s){ //unused
         return BW(s, 1880, 160, WRhoX); }
-    static TComplex BW_Rho5(double s){ //из pdg видно, что это какая-то полнейшая хренотень
-        return BW(s, 2155, 320, WRhoX); }
+    static TComplex BW_Rho5(double s){
+        return BW(s, 2134, 343, WRhoX); }
     static TComplex BW_Phi2(double s){
-        return BW(s, 2188, 83, WPhiX);  }
+        return BW(s, 2198, 71, WPhiX);  }
     
 public:
     
@@ -130,8 +130,8 @@ const double MDVM::w0_omg = 8.49;
     }
     /*
     double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
-        double pv = FAS_ASPO(sqrt(s));
-        return pv/FAS_ASPO(MX);
+        double pv = FAS_ASPO(sqrt(s)/1000);
+        return pv/FAS_ASPO(MX/1000);
     }*/
     
     double MDVM::PVG(double s, double MX, double Mn){
@@ -170,7 +170,7 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TComplex MDVM::F0(double* x, double* par, bool mode){
-        double n = par[8];//1.026;//1.027;
+        double n = par[10];//1.026;//1.027;
         double s = TMath::Power(x[0]*1E3, 2);
         double CR = par[0];
         double CO = par[1];
@@ -188,9 +188,9 @@ const double MDVM::w0_omg = 8.49;
         double s = TMath::Power(x[0]*1E3, 2);
         
         const int nr = 4;
-        double CR[nr] = { par[0], par[3], par[6], 1-par[0]-par[3]-par[6] };
-        double CO[nr] = { par[1], par[4], par[7], 1-par[1]-par[4]-par[7] };
-        double CP[nr] = { par[2], par[5], 1-par[2]-par[5], 0 };
+        double CR[nr] = { par[0], par[3], par[6], par[8]};//1-par[0]-par[3]-par[6] };
+        double CO[nr] = { par[1], par[4], par[7], par[8]};//1-par[1]-par[4]-par[7] };
+        double CP[nr] = { par[2], par[5], par[9]};//1-par[2]-par[5], 0 };
         
         double KR[nr], KO[nr], KP[nr];
         for(int i=0; i<nr; i++){
@@ -217,9 +217,9 @@ const double MDVM::w0_omg = 8.49;
     }
    
     TF1* MDVM::Cross_Section(bool mode){
-        const int Npars = 9;
+        const int Npars = 11;
         TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
-        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}");
+        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}", "#eta");
         fcs_c->SetParameters(1.19, 1.42, 1, -0.092, -0.04, -0.114, -0.032, -0.105);
         return fcs_c;
     }

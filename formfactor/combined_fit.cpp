@@ -7,6 +7,7 @@
 #include "HFitInterface.h"
 #include "TCanvas.h"
 #include "TStyle.h"
+#include "TLine.h"
 #include <iostream>
 
 #include "formfactor.cpp"
@@ -18,8 +19,28 @@ using namespace std;
 
 // definition of shared parameter charged mode
 const int N = 4;
-const int n0 = 10;
-int ipar[n0] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9 };
+const int n0 = 11;
+int ipar[n0] = { 0, 1, 2, 3, 4, 5 ,6, 7, 8, 9, 10 };
+
+void Apply(TGraphAsymmErrors* g, TF1 *f)
+ {
+    Double_t x,y,exl,exh,eyl,eyh,fxy;
+    for(int i=0; i<(g->GetN()); i++) {
+       
+       g->GetPoint(i,x,y);
+       
+       exl=g->GetErrorXlow(i);
+       exh=g->GetErrorXhigh(i);
+       eyl=g->GetErrorYlow(i);
+       eyh=g->GetErrorYhigh(i);
+       
+       fxy = ( y - (f->Eval(x)) );
+       g->SetPoint(i,x,fxy);
+       g->SetPointError(i,exl,exh,eyl,eyh);
+       //g->SetPointError(i,exl,exh,0,0);
+       
+    }
+}
 
 struct GlobalChi2 {
    vector<ROOT::Fit::Chi2Function*> f;
@@ -38,8 +59,8 @@ struct GlobalChi2 {
    }
 };
 
-ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ), до которой будет производиться фит
-
+ROOT::Fit::FitResult combinedFit(double end = 2., bool zeromode = 0) { //end - граница (в МэВ), до которой будет производиться фит
+    
   TGraphAsymmErrors* h[N] = {fileKK(), getGraph(0), getK0K0Phi(), fileKKPeak()};
   TF1* f[N] = {MDVM::Cross_Section(1), MDVM::Cross_Section(0), MDVM::Cross_Section(0), MDVM::Cross_Section(1)};
   
@@ -52,8 +73,8 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   // set the data range
   range[0].SetRange(1.01, end+0.03);
   range[1].SetRange(1.05, end);
-  range[2].SetRange(1.0, 1.1);
-  range[3].SetRange(1.0, 1.1);
+  range[2].SetRange(1.0, 1.061);
+  range[3].SetRange(1.01, 1.061);
   
   for(int i=0; i<N; i++){
     wf[i] = new ROOT::Math::WrappedMultiTF1(*f[i], 1);
@@ -66,13 +87,25 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
   GlobalChi2 chi2(chi);
   ROOT::Fit::Fitter fitter;
 
-  double par0[n0] = { 1.067, 1.28, 1.538, -0.025, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  double par0[n0] = { 1.067, 1.28, 1.038, -0.0628, -0.0503, -0.19, -0.042, 0.083, -0.077, 0.0, 0.987};
   
   // create before the parameter settings in order to fix or set range on them
   fitter.Config().SetParamsSettings(n0, par0);
   fitter.Config().MinimizerOptions().SetPrintLevel(0);
   fitter.Config().SetMinimizer("Minuit2","Migrad");
 
+  //fitter.Config().ParSettings(0).Fix();
+  //fitter.Config().ParSettings(1).Fix();
+  //fitter.Config().ParSettings(2).Fix();
+  //fitter.Config().ParSettings(3).Fix();
+  //fitter.Config().ParSettings(4).Fix();
+  //fitter.Config().ParSettings(5).Fix();
+  //fitter.Config().ParSettings(6).Fix();
+  //fitter.Config().ParSettings(7).Fix();
+  //fitter.Config().ParSettings(8).Fix();
+  //fitter.Config().ParSettings(9).Fix();
+  fitter.Config().ParSettings(10).Fix();
+  
   // fit FCN function directly
   int size = 0;
   for(int i=0; i<N; i++)
@@ -80,67 +113,90 @@ ROOT::Fit::FitResult combinedFit(double end) { //end - граница (в МэВ
     
   fitter.FitFCN(n0, chi2, &par0[0], size);
   ROOT::Fit::FitResult result = fitter.Result();
+  
+  //if(zeromode)
+  //  return chi2(result.GetParams());
+  
   result.Print(std::cout);
 
-  TCanvas * c1 = new TCanvas("Simfit","Simultaneous fit of 4 histograms", 10, 10, 1400, 900);
+  TCanvas* c[2] = { new TCanvas( "Simfit",  "Simultaneous fit of 4 histograms", 10, 10, 1400, 900), 
+                    new TCanvas("Difffit","Differences between fit and points", 10, 10, 1400, 900) };
 
-  c1->Divide(2,2);
+  c[0]->Divide(2,2);
+  c[1]->Divide(2,2);
+  TGraphAsymmErrors* hdiff[N];
+  for(int i=0; i<N; i++)
+    hdiff[i] = (TGraphAsymmErrors*)(h[i]->Clone());
   
-  for(int i=1; i<=4; i++){
-    c1->cd(i)->SetGrid();
-    c1->cd(i)->SetLogy();
+  for(int i=1; i<=N; i++){
+    c[0]->cd(i)->SetGrid();
+    c[1]->cd(i)->SetGrid();
+    c[0]->cd(i)->SetLogy();
   }
+
   gStyle->SetOptFit(1111);
   
   vector<string> titles = {"Charged Kaons", "Neutral Kaons", "Neutral Kaons. Peak", "Charged Kaons. Peak"};
   
   for(int i=0; i<N; i++){
-      c1->cd(i+1);
+      c[0]->cd(i+1);
       f[i]->SetFitResult( result, ipar);
       f[i]->SetRange(range[i]().first, range[i]().second);
       f[i]->SetLineColor(kBlue);
       h[i]->SetTitle(titles[i].c_str());
       h[i]->GetListOfFunctions()->Add(f[i]);
       h[i]->Draw("ap");
+      
       cout << (*chi[i])(result.GetParams()) << endl;
   }
+      //cout << chi2(result.GetParams()) << endl;
+  //c[0]->Close();
   
-  return result;
+  for(int i=0; i<N; i++){
+      c[1]->cd(i+1);
+      Apply(hdiff[i], f[i]);
+      hdiff[i]->SetTitle(titles[i].c_str());
+      TLine* l = new TLine(range[i]().first, 0, range[i]().second, 0);
+      hdiff[i]->SetMarkerStyle(7);
+      hdiff[i]->Draw("ap");
+      l->Draw("same");
+  }
+  c[1]->Close();
+  
+  void writer(ROOT::Fit::FitResult);
+  writer(result);
+  return result;//chi2(result.GetParams());
 }
 
-
+/*
 void checker(){
-    const int N = 50;
-    double e[N];
-    double rho[N];
-    double omg[N];
-    double phi[N];
-    ROOT::Fit::FitResult res;
-    for(int i=0; i<50; i++){
-        e[i] = 1.2 + (2. - 1.2)*i/N;
-        res = combinedFit(e[i]);
-        rho[i] = res.GetParams()[0];
-        omg[i] = res.GetParams()[1];
-        phi[i] = res.GetParams()[2];
-    }
-    TGraph* gr = new TGraph(N, &e[0], &rho[0]);
-    TGraph* go = new TGraph(N, &e[0], &omg[0]);
-    TGraph* gp = new TGraph(N, &e[0], &phi[0]);
+    int N[2] = {4, 4};
+    pair<double,double> mphi( 1465-25, 1465+25 );
+    pair<double,double> wphi(  400-60,  400+60 );
     
-    gr->SetLineColor(kBlue);
-    go->SetLineColor(kRed);
-    gp->SetLineColor(kGreen);
+    ofstream o("chisquarePhi.dat");
     
-    TCanvas* c = new TCanvas("can", "Checker", 800, 500);
+    double dmphi = (mphi.second - mphi.first)/(N[0]-1);
+    double dwphi = (wphi.second - wphi.first)/(N[1]-1);
     
-    gr->Draw();
-    go->Draw("same");
-    gp->Draw("same");
+    double Mphi, Wphi;
+    
+    for(int i=0; i<N[0]; i++)
+      for(int j=0; j<N[1]; j++){
+      
+        Mphi = mphi.first + i*dmphi;
+        Wphi = wphi.first + j*dwphi;
+        
+        cout << i << '\t' << j << endl;
+        o << Mphi << ';' << Wphi << ';' << combinedFit(Mphi, Wphi, 2, true) << endl;
+                      
+      }
+    o.close();
     return;
 }
-
+*/
 void writer(ROOT::Fit::FitResult res){
-    double e = 0.99;
+    double e = 0.994;
     int n = 1000;
     ofstream o("fitResult.dat");
     double* par = new double [res.NPar()];
@@ -149,12 +205,12 @@ void writer(ROOT::Fit::FitResult res){
         par[i] = constpar[i];
     for(int i=0; i<n; i++){
         o << i << '\t' << e*1E3 << '\t' << MDVM::Cross_Section(&e, par, 0) << endl;
-        e += (1.3 - 0.99)/n;
+        e += (1.15 - 0.99)/n;
     }
         
     for(int i=0; i<=n; i++){
         o << i << '\t' << e*1E3 << '\t' << MDVM::Cross_Section(&e, par, 0) << endl;
-        e += (2.1 - 1.3)/n;
+        e += (2.03 - 1.15)/n;
     }
     o.close();
     return;

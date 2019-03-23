@@ -24,6 +24,7 @@ void Trph::Loop()
     Long64_t nbytes = 0, nb = 0;
 
     //MegaTree
+    double BEAM_ENERGY; //энергия пучка, измеренная лазером, и ошибка
     double MASS, ENERGY, IMPULSE, ALIGN, QUALITY; //масса, энергия, импульс, угол, качество события
     int TRIGGER; //триггеры
     double RADIUS[2]; //отлёт от пучков
@@ -36,6 +37,7 @@ void Trph::Loop()
     int good;
 
     TTree *t = new TTree("InvMass", "Tree for invariant mass without energy cut");
+    t->Branch("be", &BEAM_ENERGY, "be/D");
     t->Branch("m", &MASS, "m/D");
     t->Branch("e", &ENERGY, "e/D");
     t->Branch("p", &IMPULSE, "p/D");
@@ -44,7 +46,7 @@ void Trph::Loop()
     t->Branch("win", &WIN, "win/O");
     t->Branch("w1", &W1, "w1[3]/O");
     t->Branch("t", &TRIGGER, "t/I");
-    t->Branch("q", &QUALITY, "q/D");
+    t->Branch("quality", &QUALITY, "quality/D");
     t->Branch("dedx", &DEDX, "dedx[2]/D");
     
     for(Long64_t jentry=0; jentry<nentries; jentry++) {
@@ -112,6 +114,7 @@ void Trph::Loop()
         
         WIN = W1[0]&&W1[1]&&W1[2];
         
+        BEAM_ENERGY = emeas;
         MASS = ksminv[bestKs];
         ENERGY = K.E();
         IMPULSE = K.P();
