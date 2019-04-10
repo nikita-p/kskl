@@ -22,14 +22,14 @@ public:
     TreeReader(){
     }
     
-    void washing(string inputPath, string outputPath, bool time=false){
+    void washing(string inputPath, string outputPath, bool model, bool time=false){
         double time0 = clock()/(CLOCKS_PER_SEC+0.);
         TFile *input = TFile::Open(inputPath.c_str());
         TFile *output = TFile::Open(outputPath.c_str(), "recreate");
         TTree *tr = (TTree*)(input->Get("tr_ph"));
         
         Trph cl(tr);
-        cl.Loop();
+        cl.Loop(model);
         
         output->Write();
         output->Close();
@@ -39,14 +39,14 @@ public:
         return;    
     }
     
-    void washingFromFile(string filePath){
+    void washingFromFile(string filePath, bool model){
         ifstream f(filePath.c_str());
         string input, output;
         while( !f.eof() ){
             f >> input >> output;
             if(input=="")
                 break;
-            washing(input, output, true);
+            washing(input, output, model, true);
             cout << "Well done" << endl << input << '\t' << output << endl;
         }
         return;
@@ -59,15 +59,15 @@ void events(string year){
     TreeReader t;
     if(year=="11"||year=="2011"){
         cout << "Go, " << year << endl;
-        t.washingFromFile("Inputs/trees11.dat");    }
+        t.washingFromFile("Inputs/trees11.dat", false);    }
     if(year=="12"||year=="2012"){
         cout << "Go, " << year << endl;
-        t.washingFromFile("Inputs/trees12.dat");    }
+        t.washingFromFile("Inputs/trees12.dat", false);    }
     if(year=="17"||year=="2017"){
         cout << "Go, " << year << endl;
-        t.washingFromFile("Inputs/trees17.dat");    }
+        t.washingFromFile("Inputs/trees17.dat", false);    }
     if(year=="model"){
         cout << "Go, " << year << endl;
-        t.washingFromFile("Inputs/treesModel.dat");    }
+        t.washingFromFile("Inputs/treesModel.dat", true);    }
     return;
 }

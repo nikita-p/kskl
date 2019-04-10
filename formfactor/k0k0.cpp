@@ -108,7 +108,7 @@ TGraphAsymmErrors* getGraph(bool vis){
     double factor;
     for(int i=0; i<n; i++){
             factor = ( rc[i] /radcor(e0[i]) );
-            factor = 1;
+            //factor = 1;
             cs0[i] *= factor;     
             cs1[i] *= factor;        
             cs2[i] *= factor;

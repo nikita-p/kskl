@@ -1,6 +1,7 @@
 #include <iostream>
 #include <TComplex.h>
 #include <TF1.h>
+#include "omega3pi.cpp"
 
 using namespace std;
 
@@ -123,16 +124,16 @@ const double MDVM::w0_omg = 8.49;
         return w;
     }
     
-    double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
+    /*double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
         double pv = (pow(TMath::Pi(),3)/2.)*( pow(m1*m2*m3,1/2.)*pow(sqrt(s) - m1 - m2 - m3,2)/pow(m1 + m2 + m3,3/2.) );
         double pv0 = (pow(TMath::Pi(),3)/2.)*( pow(m1*m2*m3,1/2.)*pow(sqrt(MX*MX) - m1 - m2 - m3,2)/pow(m1 + m2 + m3,3/2.) );
         return pv/pv0;
-    }
-    /*
-    double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
-        double pv = FAS_ASPO(sqrt(s)/1000);
-        return pv/FAS_ASPO(MX/1000);
     }*/
+    
+    double MDVM::PV3(double s, double MX, double m1, double m2, double m3){
+        double pv = fas(sqrt(s)/1000);
+        return pv/fas(MX/1000);
+    }
     
     double MDVM::PVG(double s, double MX, double Mn){
         double pv  = pow( (    s - Mn*Mn)/(2*sqrt(s)), 3 );

@@ -162,14 +162,14 @@ public :
    Float_t         mua3[10];   //[nmu]
    Int_t           must[10];   //[nmu]
    Int_t           nsim;
-   Int_t           simtype[1];   //[nsim]
-   Int_t           simorig[1];   //[nsim]
-   Float_t         simmom[1];   //[nsim]
-   Float_t         simphi[1];   //[nsim]
-   Float_t         simtheta[1];   //[nsim]
-   Float_t         simvtx[1];   //[nsim]
-   Float_t         simvty[1];   //[nsim]
-   Float_t         simvtz[1];   //[nsim]
+   Int_t           simtype[15];   //[nsim]
+   Int_t           simorig[15];   //[nsim]
+   Float_t         simmom[15];   //[nsim]
+   Float_t         simphi[15];   //[nsim]
+   Float_t         simtheta[15];   //[nsim]
+   Float_t         simvtx[15];   //[nsim]
+   Float_t         simvty[15];   //[nsim]
+   Float_t         simvtz[15];   //[nsim]
    Int_t           ncorr;
    Int_t           idcorr[1];   //[ncorr]
    Int_t           bitcorr[1];   //[ncorr]
@@ -350,7 +350,7 @@ public :
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop();
+   virtual void     Loop(bool model);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    void TrphWashing();

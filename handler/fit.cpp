@@ -58,7 +58,7 @@ double* HandleTree::getRegistrationEfficiency(){ //YES
     if( fitF==NULL )
         makeFit();
     
-    int N0 = 20000; //!!перенести в аргументы метода
+    int N0 = chain->GetMaximum("soft_ph"); //!!перенести в аргументы метода
     regEff[0] = double(fitF->GetParameter(0))/N0;
     regEff[1] = double(fitF->GetParError(0))/N0;
     regEff[2] = regEff[1];

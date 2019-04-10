@@ -104,7 +104,7 @@ ROOT::Fit::FitResult combinedFit(double end = 2., bool zeromode = 0) { //end - Ð
   //fitter.Config().ParSettings(7).Fix();
   //fitter.Config().ParSettings(8).Fix();
   //fitter.Config().ParSettings(9).Fix();
-  fitter.Config().ParSettings(10).Fix();
+  //fitter.Config().ParSettings(10).Fix();
   
   // fit FCN function directly
   int size = 0;

@@ -6,6 +6,7 @@
 #include <TMath.h>
 #include <TLorentzVector.h>
 #include <ctime>
+#include <iostream>
 
 #define mKs 497.614
 #define mPi 139.570
@@ -16,7 +17,7 @@ double pidedx(double P, double dEdX)    //calculate dEdX for pions
     return pidedx;
 }
 
-void Trph::Loop()
+void Trph::Loop(bool model)
 {
     if (fChain == 0) return;
 
@@ -31,6 +32,7 @@ void Trph::Loop()
     double DEDX[2]; // dE/dX
     bool WIN; //отобранные процедурой события
     bool W1[3]; // отдельные отборы
+
     
     //SimpleVars
     pair<int,int> index(0,0);
@@ -49,6 +51,36 @@ void Trph::Loop()
     t->Branch("quality", &QUALITY, "quality/D");
     t->Branch("dedx", &DEDX, "dedx[2]/D");
     
+    
+    //для моделирования отдельный отбор на мягкие фотоны
+    int SOFT_PHOTONS = 0; //количество событий с мягкими фотонами (важно для моделирования, можно на него нормировать)
+    double SOFT_PHOTONS_ENERGY;
+    if(model){
+        t->Branch("soft_ph", &SOFT_PHOTONS, "soft_ph/I");
+    }
+    
+    if(model){
+        for(Long64_t jentry=0; jentry<nentries; jentry++) {
+            Long64_t ientry = LoadTree(jentry);
+            if (ientry < 0) break;
+            nb = fChain->GetEntry(jentry);   nbytes += nb;
+            
+            SOFT_PHOTONS_ENERGY = 0;
+            int j = 0;
+            for(int i=0; i<nsim; i++){
+                if(simtype[i]==310){
+                    SOFT_PHOTONS_ENERGY += sqrt( pow(simmom[i],2) + mKs*mKs );
+                    j++;
+                    }
+                if( j==2 )
+                    std::cout << "Warning\n";
+            }
+            if( TMath::Abs(SOFT_PHOTONS_ENERGY-emeas)>20) continue; //если суммарная энергия фотонов в событии больше 20, то не работать с ним
+            SOFT_PHOTONS += 1;
+        }
+        std::cout << SOFT_PHOTONS << std::endl; 
+    }
+    
     for(Long64_t jentry=0; jentry<nentries; jentry++) {
         Long64_t ientry = LoadTree(jentry);
         if (ientry < 0) break;
@@ -60,6 +92,16 @@ void Trph::Loop()
         WIN = false; //попавшее к нам событие пометится как true
         W1[0] = false; W1[1] = false; W1[2] = false; //флаг, обозначающий прохождение некоторого конкретного отбора
         QUALITY = 0; //субъективно-объективный параметр, отражающий качество данного события
+        
+        //Специальный отбор на мягкие фотоны для моделирования
+        if(model){
+            SOFT_PHOTONS_ENERGY = 0;
+            for(int i=0; i<nsim; i++){
+                if(simtype[i]==310)
+                    SOFT_PHOTONS_ENERGY += sqrt( pow(simmom[i],2) + mKs*mKs );
+            }
+            if( TMath::Abs(SOFT_PHOTONS_ENERGY-emeas)>20) continue; //если суммарная энергия фотонов в событии больше 20, то не работать с ним
+        }
         
         //Conditions
         if(nt<2) continue; //нет двух треков, нет и дел с таким событием
@@ -125,6 +167,7 @@ void Trph::Loop()
         DEDX[0] = tdedx[index.first];
         DEDX[1] = tdedx[index.second];
         QUALITY = ( (fabs(ebeam - ENERGY)/ebeamCut) + (fabs(1-ALIGN)/(1-alignMin)) )/2.; // лежит в [0; 1]
+        
         
         t->Fill();
     }
