@@ -69,8 +69,8 @@ void Trph::Loop(bool model)
             if (ientry < 0) break;
             nb = fChain->GetEntry(jentry);   nbytes += nb;
             
-            PCUT = 2*(0.0869*emeas-36.53);
-            SOFT_PHOTONS_ENERGY = 0;
+            P_CUT = 2*(0.0869*emeas-36.53);
+            SOFT_PHOTONS_MOMENTUM = 0;
             int j = 0;
             for(int i=0; i<nsim; i++){
                 if(simtype[i]==310){
