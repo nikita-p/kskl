@@ -25,6 +25,16 @@ int* HandleTree::getTriggers(){ //YES
     return triggers;    
 }
 
+vector<int> HandleTree::GetTriggers(){
+    string add = (conditions!="") ? "&" : "";
+    vector<int> triggersVec(3);
+
+    triggersVec[0] = chain->GetEntries((conditions + add + "t==0").c_str());
+    triggersVec[1] = chain->GetEntries((conditions + add + "t==1").c_str());
+    triggersVec[2] = chain->GetEntries((conditions + add + "t==2").c_str());
+    return triggersVec;
+}
+
 double** HandleTree::triggerEfficiency(){//YES
     double** eff = new double* [3];  // [0] - TE(эффективность триггера), [1] - dTE+, [2] - dTE-
     for( int i=0; i<3; i++)
@@ -59,11 +69,12 @@ double* HandleTree::getRegistrationEfficiency(){ //YES
         makeFit();
     
     int N0 = chain->GetMaximum("soft_ph"); //!!перенести в аргументы метода
+    cout << "N0: " << N0 << endl;
     regEff[0] = double(fitF->GetParameter(0))/N0;
     regEff[1] = double(fitF->GetParError(0))/N0;
     regEff[2] = regEff[1];
     
-    
+    cout << "Regeff " << regEff[0] << endl;
     return regEff;
 }
 

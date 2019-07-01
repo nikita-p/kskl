@@ -14,11 +14,12 @@
 #include <iostream>
 #include <TTreeReader.h>
 #include <string>
+#include <vector>
 
 const int n = 70;
 
 using namespace TMath;
-
+using namespace std;
 
 class HandleTree{
 
@@ -50,6 +51,7 @@ public:
     }
     
     int* getTriggers(); //необходимо, чтоб в дереве переменная триггера называлась t и имела значение 0 - TF, 1 - CF, 2 - TF&CF
+    vector<int> GetTriggers(); //новое поколение той же функции
     void Merge(string path, std::vector<double> lum); //путь к файлу другого дерева, дерево в этом файле должно называться так же как и в оригинальном
     double* getRegistrationEfficiency();
     double** triggerEfficiency();

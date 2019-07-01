@@ -80,7 +80,7 @@ void Trph::Loop(bool model)
                 if( j==2 )
                     std::cout << "Warning\n";
             }
-            if( TMath::Abs(SOFT_PHOTONS_MOMENTUM-sqrt(emeas*emeas - mKs*mKs))>P_CUT ) continue; //если энергия KS в событии отличается от пучка больше чем на 20, то не работать с ним
+            if( TMath::Abs(SOFT_PHOTONS_MOMENTUM-sqrt(emeas*emeas - mKs*mKs))>P_CUT ) continue; //если импульс KS в событии отличается от импульсе, при энергии KS равной энергии пучка больше чем на P_CUT, то не работать с ним
             SOFT_PHOTONS += 1;
         }
         std::cout << SOFT_PHOTONS << std::endl; 
@@ -103,7 +103,7 @@ void Trph::Loop(bool model)
             SOFT_PHOTONS_MOMENTUM = 0;
             for(int i=0; i<nsim; i++){
                 if(simtype[i]==310)
-                    SOFT_PHOTONS_MOMENTUM += sqrt( pow(simmom[i],2) + mKs*mKs );
+                    SOFT_PHOTONS_MOMENTUM += simmom[i];
             }
             if( TMath::Abs(SOFT_PHOTONS_MOMENTUM-sqrt(emeas*emeas - mKs*mKs))>P_CUT) continue; //если энергия KS в событии отличается от пучка больше чем на 20, то не работать с ним
         }

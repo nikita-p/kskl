@@ -139,13 +139,13 @@ double* Dataset::RegistrationEff(double E){
     for(int i=0; i<n-1; i++){
         E0 = model[i]->getEnergy()[0];
         E1 = model[i+1]->getEnergy()[0];
-        if( (E>=E0)&&(E<=E1) ){
+        if( (E>=E0)&&(E<E1) ){
             index[0] = i;
             index[1] = i+1;
             break;
         }
     }
-    if( E>(model[n-1]->getEnergy()[0]) ){
+    if( E>=(model[n-1]->getEnergy()[0]) ){
         index[0] = n-2; index[1] = n-1;
     }
     
@@ -368,11 +368,15 @@ void Dataset::Save(string path = "Outputs/result.root"){
         cs[0] = cross_sections[0][i];
         cs[1] = cross_sections[1][i];
         cs[2] = cross_sections[2][i];
-        E[0] = mdata[i]->getEnergy()[0];    E[1] = mdata[i]->getEnergy()[1];    E[2] = mdata[i]->getEnergy()[2];
+        E[0] = mdata[i]->getEnergy()[0];
+        E[1] = mdata[i]->getEnergy()[1];
+        E[2] = mdata[i]->getEnergy()[2];
         rE = RegistrationEff(E[0]);
         trig = mdata[i]->triggerEfficiency();
         radcor = GetRadcor(E[0]);
-        L[0] = mdata[i]->getLum()[0];   L[1] = mdata[i]->getLum()[1];   L[2] = mdata[i]->getLum()[2];
+        L[0] = mdata[i]->getLum()[0];
+        L[1] = mdata[i]->getLum()[1];
+        L[2] = mdata[i]->getLum()[2];
         //cout << "Lum: " << L[0] << '\t' << L[1] << '\t' << L[2] << endl;
         regEff[0] = rE[0]; regEff[1] = rE[1]; regEff[2] = rE[2];
         trigger[0] = trig[0][0]; trigger[1] = trig[1][0]; trigger[2] = trig[2][0];
