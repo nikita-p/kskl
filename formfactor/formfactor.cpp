@@ -220,7 +220,7 @@ const double MDVM::w0_omg = 8.49;
     TF1* MDVM::Cross_Section(bool mode){
         const int Npars = 11;
         TF1* fcs_c = new TF1("Cross section", (mode ? Cross_Section_Charged : Cross_Section_Neutral), 0.98, 2.1, Npars);
-        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}", "#eta");
+        fcs_c->SetParNames("C_{#rho}", "C_{#omega}", "C_{#phi}", "C_{#rho(1450)}",  "C_{#omega(1420)}", "C_{#phi(1680)}", "C_{#rho(1570)}", "C_{#omega(1650)}", "C_{#rho(2100)}", "C_{#phi(2180)}", "#eta");
         fcs_c->SetParameters(1.19, 1.42, 1, -0.092, -0.04, -0.114, -0.032, -0.105);
         return fcs_c;
     }

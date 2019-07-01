@@ -26,12 +26,14 @@ void Trph::Loop(bool model)
 
     //MegaTree
     double BEAM_ENERGY; //энергия пучка, измеренная лазером, и ошибка
-    double MASS, ENERGY, IMPULSE, ALIGN, QUALITY; //масса, энергия, импульс, угол, качество события
+    double MASS, ENERGY, IMPULSE, ALIGN, QUALITY, THETA, LEN; //масса, энергия, импульс, угол, качество события
     int TRIGGER; //триггеры
     double RADIUS[2]; //отлёт от пучков
     double DEDX[2]; // dE/dX
     bool WIN; //отобранные процедурой события
     bool W1[3]; // отдельные отборы
+    double P_CUT; //для каждой энергии кат по импульсу(энергии) теперь будет различаться
+    double TH_CUT = 0.6; //отбор по углу тета
 
     
     //SimpleVars
@@ -50,11 +52,13 @@ void Trph::Loop(bool model)
     t->Branch("t", &TRIGGER, "t/I");
     t->Branch("quality", &QUALITY, "quality/D");
     t->Branch("dedx", &DEDX, "dedx[2]/D");
+    t->Branch("theta", &THETA, "theta/D");
+    t->Branch("len", &LEN, "len/D");
     
     
     //для моделирования отдельный отбор на мягкие фотоны
     int SOFT_PHOTONS = 0; //количество событий с мягкими фотонами (важно для моделирования, можно на него нормировать)
-    double SOFT_PHOTONS_ENERGY;
+    double SOFT_PHOTONS_MOMENTUM;
     if(model){
         t->Branch("soft_ph", &SOFT_PHOTONS, "soft_ph/I");
     }
@@ -65,17 +69,18 @@ void Trph::Loop(bool model)
             if (ientry < 0) break;
             nb = fChain->GetEntry(jentry);   nbytes += nb;
             
+            PCUT = 2*(0.0869*emeas-36.53);
             SOFT_PHOTONS_ENERGY = 0;
             int j = 0;
             for(int i=0; i<nsim; i++){
                 if(simtype[i]==310){
-                    SOFT_PHOTONS_ENERGY += sqrt( pow(simmom[i],2) + mKs*mKs );
+                    SOFT_PHOTONS_MOMENTUM += simmom[i];
                     j++;
                     }
                 if( j==2 )
                     std::cout << "Warning\n";
             }
-            if( TMath::Abs(SOFT_PHOTONS_ENERGY-emeas)>20) continue; //если суммарная энергия фотонов в событии больше 20, то не работать с ним
+            if( TMath::Abs(SOFT_PHOTONS_MOMENTUM-sqrt(emeas*emeas - mKs*mKs))>P_CUT ) continue; //если энергия KS в событии отличается от пучка больше чем на 20, то не работать с ним
             SOFT_PHOTONS += 1;
         }
         std::cout << SOFT_PHOTONS << std::endl; 
@@ -95,12 +100,12 @@ void Trph::Loop(bool model)
         
         //Специальный отбор на мягкие фотоны для моделирования
         if(model){
-            SOFT_PHOTONS_ENERGY = 0;
+            SOFT_PHOTONS_MOMENTUM = 0;
             for(int i=0; i<nsim; i++){
                 if(simtype[i]==310)
-                    SOFT_PHOTONS_ENERGY += sqrt( pow(simmom[i],2) + mKs*mKs );
+                    SOFT_PHOTONS_MOMENTUM += sqrt( pow(simmom[i],2) + mKs*mKs );
             }
-            if( TMath::Abs(SOFT_PHOTONS_ENERGY-emeas)>20) continue; //если суммарная энергия фотонов в событии больше 20, то не работать с ним
+            if( TMath::Abs(SOFT_PHOTONS_MOMENTUM-sqrt(emeas*emeas - mKs*mKs))>P_CUT) continue; //если энергия KS в событии отличается от пучка больше чем на 20, то не работать с ним
         }
         
         //Conditions
@@ -112,7 +117,7 @@ void Trph::Loop(bool model)
             if( fabs(tz[i])>10.0 ) continue; //вылетел из пучка
             if( tchi2r[i]>30.0 ) continue; // хи2 хороший
             if( tchi2z[i]>25.0 ) continue;
-            if((tth[i]>(TMath::Pi() - 0.9))||(tth[i]<0.9)) continue; //летит в детектор
+            if((tth[i]>(TMath::Pi() - TH_CUT))||(tth[i] < TH_CUT)) continue; //летит в детектор
                 
             if( tptotv[i]<40. ) continue; //меньшие импульсы непригодны, т.к. треки закрутятся в дк
             if( tptotv[i]>2*ebeam ) continue; //куда ж ещё больше
@@ -129,7 +134,7 @@ void Trph::Loop(bool model)
         if(good!=2) continue; //как результат "for'а", если треков меньше (больше) чем достаточно, делаем кик аут в поисках лучшей жизни
         if( tcharge[index.first] + tcharge[index.second] != 0 ) continue; //если суммарный заряд ненулевой, то выкинуться
             
-        int ebeamCut = 20;
+        P_CUT = 2*(0.0869*emeas-36.53);
         double alignMin = 0.8;
         double rhoCut = 0.1;
         double minDiv = TMath::Infinity(); 
@@ -150,7 +155,7 @@ void Trph::Loop(bool model)
         K.SetXYZM(0,0,ksptot[bestKs],mKs); //после фита с общей вершиной
         K.SetTheta(ksth[bestKs]);
         K.SetPhi(ksphi[bestKs]);
-        if( fabs( ebeam - K.E() ) < ebeamCut ) W1[1] = true; //отбор по энергии каона
+        if( fabs( K.P() - sqrt(emeas*emeas - mKs*mKs) ) < P_CUT ) W1[1] = true; //отбор по энергии каона
         
         if( fabs(trho[index.first])>rhoCut && fabs(trho[index.second])>rhoCut ) W1[2] = true; //отбор по прицельному параметру в р-фи
         
@@ -166,7 +171,9 @@ void Trph::Loop(bool model)
         TRIGGER = trigbits - 1;
         DEDX[0] = tdedx[index.first];
         DEDX[1] = tdedx[index.second];
-        QUALITY = ( (fabs(ebeam - ENERGY)/ebeamCut) + (fabs(1-ALIGN)/(1-alignMin)) )/2.; // лежит в [0; 1]
+        THETA = ksth[bestKs];
+        LEN = kslen[bestKs];
+        QUALITY = ( (fabs(sqrt(emeas*emeas-mKs*mKs) - IMPULSE)/P_CUT) + (fabs(1-ALIGN)/(1-alignMin)) )/2.; // лежит в [0; 1]
         
         
         t->Fill();

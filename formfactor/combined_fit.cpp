@@ -55,7 +55,7 @@ struct GlobalChi2 {
       double p[n0];
       for (int i = 0; i < n0; ++i) 
           p[i] = par[ ipar[i] ];
-      return (*f[0])(p) + (*f[1])(p) + (*f[2])(p) + (*f[3])(p);
+      return (*f[0])(p) + (*f[3])(p) + (*f[1])(p) + (*f[2])(p);
    }
 };
 

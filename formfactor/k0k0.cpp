@@ -77,6 +77,31 @@ double radcor(double e){
     return 0;
 }
 
+TGraphAsymmErrors* getGraphOneSeason(string res){
+    TFile* f11 = TFile::Open(res.c_str());
+    TTree* t11 = (TTree*)f11->Get("t");
+    int n = t11->GetEntries();
+    double cs0[n];    
+    double cs1[n];
+    double cs2[n];
+    double e0[n];
+    double e1[n];
+    double e2[n];
+    double rc[n];
+    reader(t11, 0, &cs0[0], &cs1[0], &cs2[0], &e0[0], &e1[0], &e2[0], &rc[0], 0);
+    double factor;
+    for(int i=0; i<n; i++){
+            factor = ( rc[i] /radcor(e0[i]) );
+            cs0[i] *= factor;     
+            cs1[i] *= factor;        
+            cs2[i] *= factor;
+    }
+        
+    f11->Close();
+    TGraphAsymmErrors* gr = new TGraphAsymmErrors(n, &e0[0], &cs0[0], &e2[0], &e1[0], &cs2[0], &cs1[0]);
+    return gr;
+}
+
 TGraphAsymmErrors* getGraph(bool vis){
     
     TFile* f11 = TFile::Open("res11.root");
